@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 
-import { MessageCreatedEvent } from '../../messages/events/message-created.event';
-import { Conversation } from '../entities/conversation.entity';
+import type {
+  MessageCreatedPayload,
+} from "../../messages/events/message-created.event";
+
+import { Conversation } from "../entities/conversation.entity";
 
 @Injectable()
 export class ConversationListener {
@@ -13,11 +16,16 @@ export class ConversationListener {
     private readonly conversationRepo: Repository<Conversation>,
   ) {}
 
-  @OnEvent('message.created')
-  async handleUpdateConversation(event: MessageCreatedEvent) {
-    await this.conversationRepo.update(event.conversationId, {
-      last_message_id: event.messageId,
-      last_message_at: new Date(),
-    });
+  @OnEvent("message.created")
+  async handleUpdateConversation(
+    payload: MessageCreatedPayload,
+  ): Promise<void> {
+    await this.conversationRepo.update(
+      payload.conversationId,
+      {
+        last_message_id: payload.id,
+        last_message_at: payload.createdAt,
+      },
+    );
   }
 }

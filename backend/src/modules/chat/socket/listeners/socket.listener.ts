@@ -1,18 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
-import { MessageCreatedEvent } from '../../messages/events/message-created.event';
-import { ChatGateway } from '../gateways/chat.gateway';
+import {
+  MessageCreatedEvent,
+} from '../../messages/events/message-created.event';
+
+import { SocketEmitterService }
+from '../services/socket-emitter.service';
 
 @Injectable()
 export class SocketListener {
-  constructor(private readonly gateway: ChatGateway) {}
+  constructor(
+    private readonly emitter:
+      SocketEmitterService,
+  ) {}
 
-  @OnEvent('message.created')
-  handleSocket(event: MessageCreatedEvent) {
-    this.gateway.emitMessage(event.conversationId, {
-      messageId: event.messageId,
-      senderId: event.senderId,
-    });
+  @OnEvent(
+    'message.created',
+  )
+  handleMessageCreated(
+    event: MessageCreatedEvent,
+  ): void {
+
+    this.emitter.emitMessage(
+      event.payload,
+    );
+
   }
 }

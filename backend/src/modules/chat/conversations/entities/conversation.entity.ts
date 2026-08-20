@@ -5,18 +5,21 @@ import {
   OneToMany,
   ManyToOne,
   JoinColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 import { ConversationMember } from './conversation-member.entity';
 import { Message } from '../../messages/entities/message.entity';
 import { ConversationType } from '../enums/conversation-type.enum';
+import { Topic } from '../../topics/entities/topic.entity';
 
 @Entity('conversations')
 export class Conversation {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
 
-   @Column({
+  @Column({
     type: 'enum',
     enum: ConversationType,
   })
@@ -31,19 +34,30 @@ export class Conversation {
   @Column({ type: 'datetime' })
   created_at: Date;
 
-  // ✅ FIX 1: thêm field này
   @Column({ type: 'bigint', unsigned: true, nullable: true })
   last_message_id: number;
 
-  // ✅ FIX 2: thêm field này
   @Column({ type: 'datetime', nullable: true })
   last_message_at: Date;
 
-  // ✅ OPTIONAL (chuẩn hơn - relation)
   @ManyToOne(() => Message)
   @JoinColumn({ name: 'last_message_id' })
   last_message: Message;
 
   @OneToMany(() => ConversationMember, (m) => m.conversation)
   members: ConversationMember[];
+
+  @ManyToMany(() => Topic)
+  @JoinTable({
+    name: 'conversation_topics',
+    joinColumn: {
+      name: 'conversation_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'topic_id',
+      referencedColumnName: 'id',
+    },
+  })
+  topics: Topic[];
 }

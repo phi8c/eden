@@ -1,38 +1,87 @@
+import { Injectable }
+from '@nestjs/common';
 
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { TopicRepository } from '../repositories/topic.repository';
-import { CreateTopicDto } from '../dto/create-topic.dto';
+import { CreateTopicDto }
+from '../dto/create-topic.dto';
+
+import { CreateTopicUseCase }
+from '../application/create-topic.usecase';
+
+import { GetTopicsUseCase }
+from '../application/get-topics.usecase';
+
+import { CreateDefaultTopicUseCase }
+from '../application/create-default-topic.usecase';
 
 @Injectable()
+
 export class TopicService {
-    constructor(
-     
-    private readonly topicRepo: TopicRepository,
 
-    ){}
+ constructor(
 
-    async createTopic(dto: CreateTopicDto, userId: number) {
-        if(!dto.name) {
-            throw new BadRequestException('Topic name is required');
+   private readonly createTopicUseCase:
+   CreateTopicUseCase,
 
-        }
-        return this.topicRepo.create({
-            name: dto.name,
-            conversation_id: dto.conversationId,
-            created_by: userId,
-        });
-    }
-    async getTopics(conversationId: number) {
-        return this.topicRepo.findByConversationId(conversationId)
-       
+   private readonly getTopicsUseCase:
+   GetTopicsUseCase,
 
-        
-    }
-     async createDefaultTopic(conversationId: number) {
-    return this.topicRepo.create({
-      name: 'General',
-      conversation_id: conversationId,
-    });
-  }
-    
+   private readonly createDefaultTopicUseCase:
+   CreateDefaultTopicUseCase,
+
+ ){}
+
+ async createTopic(
+
+   dto:CreateTopicDto,
+
+   userId:number,
+
+ ){
+
+   return await
+
+   this.createTopicUseCase.execute(
+
+      dto,
+
+      userId,
+
+   );
+
+ }
+
+
+ async getTopics(
+
+   conversationId:number,
+
+ ){
+
+   return await
+
+   this.getTopicsUseCase.execute(
+
+      conversationId,
+
+   );
+
+ }
+
+
+ async createDefaultTopic(
+
+   conversationId:number,
+
+ ){
+
+   return await
+
+   this.createDefaultTopicUseCase.execute(
+
+      conversationId,
+
+   );
+
+ }
+
 }

@@ -1,6 +1,0 @@
-export interface Chat {
-  id: string
-  title: string
-  lastMessage?: string
-  updatedAt: number
-}

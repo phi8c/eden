@@ -1,111 +1,115 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { JwtService } from '@nestjs/jwt';
-import { Request, Response } from 'express';
+import { Injectable }
+from '@nestjs/common';
 
-import { AuthRepository } from '../repository/auth.repository';
-import { RegisterDto } from '../dto/register.dto';
-import { LoginDto } from '../dto/login.dto';
+import { Request, Response }
+from 'express';
 
-import {
-  EmailAlreadyExistsException,
-  InvalidCredentialsException,
-} from '../exceptions/auth.exception';
+import { RegisterDto }
+from '../dto/register.dto';
+
+import { LoginDto }
+from '../dto/login.dto';
+
+
+import { RegisterUseCase }
+from '../application/register.usecase';
+
+import { LoginUseCase }
+from '../application/login.usecase';
+
+import { RefreshTokenUseCase }
+from '../application/refresh-token.usecase';
+
+import { LogoutUseCase }
+from '../application/logout.usecase';
+
 
 @Injectable()
-export class AuthService {
-  constructor(
-    private readonly authRepository: AuthRepository,
-    private readonly jwtService: JwtService,
-  ) {}
 
-  // 🔐 REGISTER (GIỮ NGUYÊN)
-  async register(dto: RegisterDto) {
-    const existing = await this.authRepository.findByEmail(dto.email);
+export class AuthService{
 
-    if (existing) {
-      throw new EmailAlreadyExistsException();
-    }
+ constructor(
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+   private readonly registerUseCase:
+   RegisterUseCase,
 
-    return this.authRepository.createUser({
-      username: dto.username,
-      email: dto.email,
-      password_hash: hashedPassword,
-    });
-  }
+   private readonly loginUseCase:
+   LoginUseCase,
 
-  // 🔐 LOGIN (SỬA)
-  async login(dto: LoginDto, res: Response) {
-    const user = await this.authRepository.findByEmail(dto.email);
+   private readonly refreshTokenUseCase:
+   RefreshTokenUseCase,
 
-    if (!user) {
-      throw new InvalidCredentialsException();
-    }
+   private readonly logoutUseCase:
+   LogoutUseCase,
 
-    const valid = await bcrypt.compare(dto.password, user.password_hash);
+ ){}
 
-    if (!valid) {
-      throw new InvalidCredentialsException();
-    }
+ async register(
+   dto:RegisterDto,
+ ){
 
-    const payload = {
-      sub: user.id,
-      email: user.email,
-    };
+   return await
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '15m',
-    });
+   this.registerUseCase
+   .execute(dto);
 
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
-    });
+ }
 
-    // 🔥 set cookie refresh token
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: false, // 👉 production = true
-      sameSite: 'lax',
-    });
 
-    return {
-      access_token: accessToken,
-    };
-  }
+ async login(
 
-  // 🔄 REFRESH TOKEN
-  async refresh(req: Request) {
-    const token = req.cookies?.refresh_token;
+   dto:LoginDto,
 
-    if (!token) {
-      throw new UnauthorizedException();
-    }
+   res:Response,
 
-    try {
-      const payload = this.jwtService.verify(token);
+ ){
 
-      const newAccessToken = this.jwtService.sign({
-        sub: payload.sub,
-        email: payload.email,
-      });
+   return await
 
-      return {
-        access_token: newAccessToken,
-      };
-    } catch {
-      throw new UnauthorizedException();
-    }
-  }
+   this.loginUseCase
+   .execute(
 
-  // 🚪 LOGOUT
-  logout(res: Response) {
-    res.clearCookie('refresh_token');
+      dto,
 
-    return { message: 'logged out' };
-  }
+      res,
+
+   );
+
+ }
+
+
+ async refresh(
+
+   req:Request,
+
+ ){
+
+   return await
+
+   this.refreshTokenUseCase
+   .execute(
+
+      req,
+
+   );
+
+ }
+
+
+ logout(
+
+   res:Response,
+
+ ){
+
+    return this
+    .logoutUseCase
+    .execute(
+
+       res
+
+    );
+
+ }
+
 }

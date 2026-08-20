@@ -1,45 +1,84 @@
-import { Form, Input, Button } from "antd"
-import type { LoginDto } from "../dto/loginDto"
+"use client";
 
-interface Props {
-  onSubmit: (data: LoginDto) => Promise<void>
-  loading?: boolean
-}
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { LogIn } from "lucide-react";
 
-export default function LoginForm({ onSubmit, loading }: Props) {
-  const [form] = Form.useForm()
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useLogin } from "../hooks/useLogin";
 
-  const handleFinish = (values: LoginDto) => {
-    onSubmit(values)
+export function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const loginMutation = useLogin();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      await loginMutation.mutateAsync({
+        email,
+        password,
+      });
+    } catch {
+      return;
+    }
+
+    router.replace(searchParams.get("next") ?? "/chat");
   }
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      onFinish={handleFinish}
-    >
-      <Form.Item
-        label="Email"
-        name="email"
-        rules={[{ required: true, message: "Email is required" }]}
-      >
-        <Input placeholder="Enter email" />
-      </Form.Item>
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+      </div>
 
-      <Form.Item
-        label="Password"
-        name="password"
-        rules={[{ required: true, message: "Password is required" }]}
-      >
-        <Input.Password placeholder="Enter password" />
-      </Form.Item>
+      <div className="grid gap-2">
+        <Label htmlFor="password">Mat khau</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+        />
+      </div>
 
-      <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
-          Login
-        </Button>
-      </Form.Item>
-    </Form>
-  )
+      {loginMutation.isError && (
+        <p className="text-sm text-destructive">
+          Dang nhap khong thanh cong. Kiem tra email va mat khau.
+        </p>
+      )}
+
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={loginMutation.isPending}
+      >
+        <LogIn data-icon="inline-start" />
+        Dang nhap
+      </Button>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Chua co tai khoan?{" "}
+        <Link className="font-medium text-foreground underline" href="/register">
+          Dang ky
+        </Link>
+      </p>
+    </form>
+  );
 }

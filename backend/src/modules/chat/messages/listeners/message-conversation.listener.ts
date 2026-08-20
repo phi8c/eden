@@ -1,20 +1,45 @@
-import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { Injectable }
+from '@nestjs/common';
 
-import { MessageCreatedEvent } from '../events/message-created.event';
-import { ConversationRepository } from '../../conversations/repositories/conversation.repository';
+import { OnEvent }
+from '@nestjs/event-emitter';
+
+import { MessageCreatedEvent }
+from '../events/message-created.event';
+
+import { MessageQueue }
+from '../../../../infrastructure/queue/queues/message.queue';
 
 @Injectable()
-export class MessageConversationListener {
-  constructor(
-    private readonly conversationRepo: ConversationRepository,
-  ) {}
 
-  @OnEvent('message.created')
-  async handleUpdateConversation(event: MessageCreatedEvent) {
-    await this.conversationRepo.updateLastMessage(
-      event.conversationId,
-      event.messageId,
+export class MessageConversationListener {
+
+ constructor(
+
+   private readonly messageQueue:
+   MessageQueue,
+
+ ){}
+
+ @OnEvent(
+
+   'message.created'
+
+ )
+
+ async handleUpdateConversation(
+
+   event:
+   MessageCreatedEvent,
+
+ ){
+
+    await this.messageQueue.created(
+
+       event
+
     );
-  }
+
+ }
+
 }

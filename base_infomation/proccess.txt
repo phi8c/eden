@@ -1,0 +1,640 @@
+
+TIẾN TRÌNH SỬA VÀ ENHANCE PHẦN CHAT REALTIME
+
+Được. Mình sẽ không nói kiểu "sửa cái này cái kia", mà sẽ lập **checklist production**. Đây là checklist nếu mình là Tech Lead chuẩn bị release V1. Mục tiêu là **không phải refactor lại sau này**.
+
+---
+
+# PHASE 1 - Hoàn thiện Realtime Foundation ⭐⭐⭐⭐⭐ (Ưu tiên cao nhất)
+
+## 1. Socket Authentication (Bắt buộc)
+
+**Hiện tại**
+
+```text
+client.handshake.query.userId
+```
+
+❌ Không an toàn.
+
+### Sửa
+
+* JWT Authentication cho Socket.
+* Verify token khi connect.
+* Gắn `socket.user`.
+* Không bao giờ trust `query.userId`.
+
+Kết quả:
+
+```text
+Socket
+    │
+    ▼
+Verify JWT
+    │
+    ▼
+socket.user
+```
+
+---
+
+## 2. Socket Authorization (Bắt buộc)
+
+Hiện:
+
+```text
+conversation:join
+```
+
+join luôn.
+
+❌ Sai.
+
+### Phải:
+
+```text
+join request
+        │
+        ▼
+ConversationMemberRepository
+        │
+        ▼
+isMember ?
+        │
+   yes      no
+    │        │
+ join     reject
+```
+
+---
+
+## 3. Socket Manager (Frontend)
+
+Không được để:
+
+```tsx
+socket.on(...)
+```
+
+rải trong component.
+
+Tạo:
+
+```text
+services/
+
+socket/
+
+socket.manager.ts
+
+socket.events.ts
+
+socket.service.ts
+```
+
+Responsibility:
+
+* connect
+* disconnect
+* reconnect
+* join
+* leave
+* register event
+
+=> SRP.
+
+---
+
+## 4. Join / Leave lifecycle
+
+Hiện thiếu.
+
+Phải có:
+
+```text
+Open Conversation
+
+↓
+
+leave room cũ
+
+↓
+
+join room mới
+```
+
+Không để user join 50 room.
+
+---
+
+## 5. Reconnect Strategy
+
+Reconnect xong phải:
+
+```text
+Connect
+
+↓
+
+Authenticate
+
+↓
+
+Join lại room
+
+↓
+
+Restore state
+```
+
+---
+
+# PHASE 2 - Message Realtime ⭐⭐⭐⭐⭐
+
+## 6. ChatStore Refactor
+
+Store hiện tại đang làm nhiều việc.
+
+Tách:
+
+```text
+ChatStore
+
+↓
+
+ConversationStore
+
+↓
+
+MessageStore
+```
+
+Hoặc giữ một store nhưng chia action rõ:
+
+```text
+Conversation Action
+
+Message Action
+
+Socket Action
+```
+
+---
+
+## 7. appendMessage()
+
+Không được:
+
+```text
+loadMessages()
+```
+
+mỗi lần nhận socket.
+
+Phải:
+
+```text
+message:new
+
+↓
+
+append
+```
+
+---
+
+## 8. Duplicate Message Protection
+
+Nếu:
+
+```text
+POST
+
+↓
+
+API trả
+
+↓
+
+Socket cũng trả
+```
+
+=> sẽ duplicate.
+
+Phải có:
+
+```text
+messageId
+
+clientMessageId
+
+deduplicate
+```
+
+---
+
+## 9. Optimistic Update
+
+Thay vì:
+
+```text
+đợi API
+```
+
+Phải:
+
+```text
+pending
+
+↓
+
+sent
+
+↓
+
+failed
+```
+
+---
+
+## 10. Auto Scroll
+
+Chỉ:
+
+```text
+scroll cuối
+
+↓
+
+nếu user đang ở cuối
+```
+
+Không được auto kéo nếu user đang đọc tin cũ.
+
+---
+
+# PHASE 3 - Conversation ⭐⭐⭐⭐
+
+## 11. Conversation Cache
+
+Hiện:
+
+```text
+DEL conversations:userId
+```
+
+Sai.
+
+Phải:
+
+```text
+Conversation
+
+↓
+
+Members
+
+↓
+
+DEL từng member
+```
+
+---
+
+## 12. Conversation Preview
+
+Tin nhắn mới.
+
+↓
+
+Update:
+
+```text
+lastMessage
+
+updatedAt
+
+unreadCount
+```
+
+Không reload list.
+
+---
+
+## 13. Unread Counter
+
+Realtime.
+
+Không polling.
+
+---
+
+# PHASE 4 - Delivery ⭐⭐⭐⭐
+
+Event:
+
+```text
+message.sent
+
+message.delivered
+
+message.read
+```
+
+---
+
+DB:
+
+```text
+message_deliveries
+```
+
+đã có.
+
+Tận dụng.
+
+---
+
+# PHASE 5 - Typing ⭐⭐⭐⭐
+
+Event:
+
+```text
+typing.start
+
+typing.stop
+```
+
+Throttle.
+
+Không emit mỗi ký tự.
+
+---
+
+# PHASE 6 - Presence ⭐⭐⭐⭐
+
+Hiện mới:
+
+```text
+online
+
+offline
+```
+
+Thiếu:
+
+```text
+lastSeen
+
+heartbeat
+
+idle
+```
+
+---
+
+# PHASE 7 - Friendship ⭐⭐⭐⭐
+
+Sau realtime.
+
+Hoàn thiện:
+
+* Cursor Pagination.
+* Badge Count.
+* Pending realtime.
+* Accept realtime.
+
+---
+
+# PHASE 8 - Notification ⭐⭐⭐⭐
+
+Socket Event:
+
+```text
+notification.created
+```
+
+UI:
+
+```text
+Toast
+
+Badge
+
+Panel
+```
+
+---
+
+# PHASE 9 - Upload ⭐⭐⭐⭐
+
+Hiện mới upload.
+
+Thiếu:
+
+```text
+Progress
+
+Cancel
+
+Retry
+
+Chunk upload
+
+Video thumbnail
+
+Compression Worker
+```
+
+---
+
+# PHASE 10 - Security ⭐⭐⭐⭐⭐
+
+## Socket
+
+JWT.
+
+---
+
+## HTTP
+
+Rate Limit.
+
+Đã có.
+
+---
+
+## Upload
+
+Mime check.
+
+Magic Number check.
+
+Virus scan (có thể bổ sung sau).
+
+---
+
+## Conversation
+
+Permission check.
+
+---
+
+## Topic
+
+Permission check.
+
+---
+
+# PHASE 11 - Performance ⭐⭐⭐⭐⭐
+
+Redis:
+
+```text
+Conversation
+
+Message
+
+Presence
+
+Friend Count
+```
+
+---
+
+Queue:
+
+```text
+Upload
+
+Notification
+
+Analytics
+```
+
+---
+
+DB Index:
+
+```text
+ConversationMember
+
+Message
+
+Friendship
+
+Presence
+```
+
+---
+
+# PHASE 12 - Clean Architecture ⭐⭐⭐⭐⭐
+
+Không để:
+
+```text
+Controller
+
+↓
+
+Repository
+```
+
+Luôn:
+
+```text
+Controller
+
+↓
+
+Service
+
+↓
+
+UseCase
+
+↓
+
+Repository
+```
+
+---
+
+Socket cũng vậy.
+
+Không:
+
+```text
+Gateway
+
+↓
+
+Repository
+```
+
+Mà:
+
+```text
+Gateway
+
+↓
+
+Service
+
+↓
+
+UseCase
+```
+
+---
+
+# PHASE 13 - SOLID ⭐⭐⭐⭐⭐
+
+Không để:
+
+```text
+ChatStore
+```
+
+600~800 dòng.
+
+Store chỉ orchestration.
+
+Business nằm backend.
+
+---
+
+# PHASE 14 - Deployment ⭐⭐⭐⭐⭐
+
+Ubuntu:
+
+* PM2/Systemd.
+* Redis.
+* MySQL.
+* Supabase Storage.
+* Socket Redis Adapter.
+* Nginx WebSocket.
+* HTTPS.
+* CORS.
+* ENV Validation.
+* Health Check.
+
+---
+
+# Thứ tự thực hiện mình đề xuất
+
+Để không phải sửa đi sửa lại, mình sẽ bám đúng thứ tự này:
+
+1. **Socket Authentication & Authorization** (JWT, kiểm tra quyền join room).
+2. **Socket lifecycle** (connect, reconnect, join, leave, event manager).
+3. **Realtime Message** (append, deduplicate, optimistic update).
+4. **Conversation realtime** (last message, unread, cache invalidation).
+5. **Typing, Delivery, Read Receipt**.
+6. **Friendship** (UI + realtime + cursor pagination).
+7. **Notification**.
+8. **Upload nâng cao**.
+9. **Tối ưu hiệu năng và chuẩn bị deploy**.
+
+## Có một điểm mình muốn bổ sung
+
+Nhìn toàn bộ backend của bạn, mình thấy kiến trúc đang đi theo hướng **Application Service + UseCase + Repository + Event**. Để giữ đúng SOLID và dễ maintain, mình sẽ **không viết thêm logic business vào Gateway, Controller hay Store**. Gateway chỉ giao tiếp Socket, Controller chỉ nhận request, Store chỉ quản lý state. Toàn bộ nghiệp vụ (quyền, kiểm tra thành viên, tạo conversation, gửi message...) sẽ tiếp tục nằm trong UseCase và Service. Điều này sẽ giúp khi sau này thêm mobile app hoặc API khác, toàn bộ business logic vẫn được tái sử dụng mà không phải viết lại.

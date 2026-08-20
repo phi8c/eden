@@ -1,44 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import { ConversationRepository } from '../repositories/conversation.repository';
-import { CreateConversationDto } from '../dto/create-conversation.dto';
+
+import type { CreateConversationDto } from '../dto/create-conversation.dto';
+
+import { CreateConversationUseCase } from '../applications/create-conversation.usecase';
+import { GetConversationsUseCase } from '../applications/get-conversations.usecase';
+
+import { ConversationMemberRepository } from '../repositories/conversation-member.repository';
 
 @Injectable()
 export class ConversationService {
-
   constructor(
-    private readonly conversationRepository: ConversationRepository,
+    private readonly createConversationUseCase: CreateConversationUseCase,
+
+    private readonly getConversationsUseCase: GetConversationsUseCase,
+
+    private readonly conversationMemberRepository: ConversationMemberRepository,
   ) {}
 
-  async createConversation(userId: number, dto: CreateConversationDto) {
-
-    const conversation = await this.conversationRepository.createConversation({
-      type: dto.type,
-      title: dto.title,
-      created_by: userId,
-      created_at: new Date(),
-    });
-
-    const members = [...dto.members, userId];
-
-    await this.conversationRepository.addMembers(
-      conversation.id,
-      members,
+  async createConversation(
+    userId: number,
+    dto: CreateConversationDto,
+  ) {
+    return this.createConversationUseCase.execute(
+      userId,
+      dto,
     );
-
-    return conversation;
   }
 
-  async getUserConversations(userId: number) {
-  const conversations = await this.conversationRepository.findByUserId(userId);
+  async getUserConversations(
+    userId: number,
+  ) {
+    return this.getConversationsUseCase.execute(
+      userId,
+    );
+  }
 
-  return conversations.map((c) => ({
-    id: c.id,
-    title: c.title,
-    type: c.type,
-
-    lastMessage: c.last_message?.content || null, // 🔥 FIX
-    lastMessageAt: c.last_message_at,
-  }));
-}
-
+  async canJoinConversation(
+    conversationId: number,
+    userId: number,
+  ): Promise<boolean> {
+    return this.conversationMemberRepository.isMember(
+      conversationId,
+      userId,
+    );
+  }
 }

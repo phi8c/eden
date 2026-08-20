@@ -1,67 +1,86 @@
-import { observer } from "mobx-react-lite"
-import chatStore from "../../stores/chatStore"
-import userStore from "../../../user/stores/userStore"
+"use client";
 
-import {UserAvatar} from "../../../../shared/controls/avatar/index"
+import { Loader2 } from "lucide-react";
 
-const MessageList = observer(() => {
-  const messages = chatStore.currentMessages
-  const currentUser = userStore.currentUser
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/modules/auth/stores/auth.store";
+import { useMessages } from "../../hooks/useMessages";
+
+interface MessageListProps {
+  topicId: number | null;
+}
+
+export function MessageList({ topicId }: MessageListProps) {
+  const currentUserId = useAuthStore((state) => state.currentUser?.user.id);
+  const { data: messages = [], isLoading, isError } = useMessages(topicId);
+
+  if (!topicId) {
+    return (
+      <div className="grid min-h-full place-items-center p-6 text-center text-sm text-muted-foreground">
+        Chon mot topic de xem tin nhan.
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        Dang tai tin nhan
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="grid min-h-full place-items-center p-6 text-center text-sm text-destructive">
+        Khong tai duoc tin nhan.
+      </div>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="grid min-h-full place-items-center p-6 text-center text-sm text-muted-foreground">
+        Chua co tin nhan. Gui cau dau tien di.
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-fill overflow-auto p-3">
-
-      {messages.map((msg) => {
-        const isMe = msg.senderId === currentUser?.id
-
-       
-        const user = isMe ? currentUser : userStore.selectedUser
+    <div className="flex min-h-full flex-col justify-end gap-3 p-4">
+      {messages.map((message) => {
+        const mine = message.senderId === currentUserId;
 
         return (
           <div
-            key={msg.id}
-            className={`mb-3 d-flex ${
-              isMe ? "justify-content-end" : "justify-content-start"
-            }`}
+            key={message.id}
+            className={cn("flex", mine ? "justify-end" : "justify-start")}
           >
-
-            {!isMe && (
-              <UserAvatar
-                src={user?.profile?.avatarUrl}
-  name={user?.profile?.displayName || user?.username}
-  size={32}
-  online={user?.presence?.status === 1}
-              />
-            )}
-
-            <div
-              className={`p-2 rounded ${
-                isMe ? "bg-primary text-white" : "bg-light"
-              }`}
-              style={{ maxWidth: "60%" }}
-            >
-
-              {/* name */}
-              {!isMe && (
-                <div className="small fw-bold">
-                  {user?.profile?.displayName || "User"}
-                  {user?.presence?.status === 1 && (
-                    <span className="text-success ms-2">●</span>
-                  )}
-                </div>
+            <article
+              className={cn(
+                "max-w-[78%] rounded-lg px-3 py-2 shadow-sm",
+                mine
+                  ? "bg-zinc-950 text-white"
+                  : "border bg-background text-foreground",
               )}
-
-              {/* content */}
-              <div>{msg.content}</div>
-
-            </div>
-
+            >
+              <p className="text-sm leading-6">{message.content}</p>
+              <p
+                className={cn(
+                  "mt-1 text-[11px]",
+                  mine ? "text-zinc-300" : "text-muted-foreground",
+                )}
+              >
+                {new Date(message.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </article>
           </div>
-        )
+        );
       })}
-
     </div>
-  )
-})
-
-export default MessageList
+  );
+}

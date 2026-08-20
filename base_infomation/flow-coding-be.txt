@@ -1,0 +1,908 @@
+Hiện tại backend của bạn **không còn là Clean Architecture thuần**, cũng không phải DDD thuần.
+
+Nó đang tiến tới một kiểu kiến trúc thực tế mà rất nhiều hệ thống enterprise dùng:
+
+```text
+Modular Monolith
+
++
+
+Clean Architecture
+
++
+
+CQRS-lite
+
++
+
+Event Driven
+
++
+
+Hexagonal tư duy nhẹ
+```
+
+---
+
+# 1. TƯ DUY TỔNG THỂ
+
+Mỗi module là một bounded context nhỏ:
+
+```text
+Auth
+
+User
+
+Conversation
+
+Topic
+
+Message
+
+Friendship
+
+Upload
+```
+
+Mỗi module tự quản lý:
+
+```text
+Controller
+
+UseCase
+
+Repository
+
+Events
+
+Listeners
+```
+
+Không phụ thuộc lung tung vào module khác.
+
+---
+
+# 2. LUỒNG CODE CHUẨN
+
+Ví dụ gửi tin nhắn:
+
+```text
+POST /messages
+
+↓
+
+MessageController
+
+↓
+
+SendMessageUseCase
+
+↓
+
+MessageRepository
+
+↓
+
+MySQL
+
+↓
+
+message.created
+
+↓
+
+Listeners
+
+↓
+
+Queue
+
+↓
+
+Socket
+
+↓
+
+Redis
+```
+
+---
+
+Không làm kiểu:
+
+```text
+Controller
+
+↓
+
+Service
+
+↓
+
+Service
+
+↓
+
+Service
+
+↓
+
+Repository
+```
+
+vì sau vài tháng sẽ thành spaghetti.
+
+---
+
+# 3. CẤU TRÚC MODULE
+
+Ví dụ Message:
+
+```text
+messages/
+
+ controllers/
+
+ application/
+
+ repositories/
+
+ entities/
+
+ dto/
+
+ events/
+
+ listeners/
+
+ processors/
+
+ services/
+```
+
+---
+
+Ý nghĩa:
+
+## Controller
+
+Chỉ nhận request.
+
+```text
+HTTP
+
+↓
+
+UseCase
+```
+
+Không business.
+
+---
+
+## Application
+
+Đây là nơi chứa business.
+
+Ví dụ:
+
+```text
+SendMessageUseCase
+
+GetMessagesUseCase
+```
+
+---
+
+Rule:
+
+```text
+Business
+
+ở đây
+
+không nằm trong controller
+```
+
+---
+
+## Repository
+
+Chỉ truy cập DB.
+
+Ví dụ:
+
+```text
+findById
+
+save
+
+update
+```
+
+Không business.
+
+---
+
+## Event
+
+Ví dụ:
+
+```text
+message.created
+
+conversation.created
+
+media.upload.completed
+```
+
+Chỉ là object truyền dữ liệu.
+
+---
+
+## Listener
+
+Nhận event.
+
+Ví dụ:
+
+```text
+message.created
+
+↓
+
+update conversation
+
+↓
+
+create delivery
+
+↓
+
+emit socket
+```
+
+---
+
+## Processor
+
+Chỉ dành cho queue.
+
+Ví dụ:
+
+```text
+media upload
+
+video
+
+thumbnail
+
+compress
+```
+
+---
+
+# 4. INFRASTRUCTURE
+
+Tách hoàn toàn khỏi business.
+
+```text
+infrastructure/
+
+ redis/
+
+ queue/
+
+ socket/
+
+ storage/
+
+ logger/
+
+ cache/
+```
+
+---
+
+Ví dụ:
+
+```text
+Supabase
+```
+
+không được gọi trực tiếp trong controller.
+
+Phải:
+
+```text
+Controller
+
+↓
+
+UseCase
+
+↓
+
+Storage abstraction
+
+↓
+
+Supabase
+```
+
+---
+
+# 5. EVENT-DRIVEN
+
+Hiện đang áp dụng ở:
+
+```text
+Message
+
+Upload
+```
+
+Ví dụ:
+
+```text
+send message
+
+↓
+
+message.created
+
+↓
+
+listener A
+
+listener B
+
+listener C
+```
+
+---
+
+Lợi ích:
+
+Mai thêm:
+
+```text
+Notification
+
+Audit log
+
+Analytics
+```
+
+không sửa SendMessageUseCase.
+
+Chỉ thêm listener.
+
+---
+
+# 6. CQRS-LITE
+
+Bạn đang đi theo:
+
+```text
+Command
+
+↓
+
+SendMessageUseCase
+
+CreateConversationUseCase
+
+UploadAvatarUseCase
+```
+
+---
+
+và
+
+```text
+Query
+
+↓
+
+GetMessagesUseCase
+
+GetProfileUseCase
+
+GetConversationsUseCase
+```
+
+---
+
+Đọc và ghi tách riêng.
+
+Không cực đoan tới MediatR.
+
+---
+
+# 7. KHI VIẾT TÍNH NĂNG MỚI
+
+Luôn theo thứ tự:
+
+## Nếu là Query
+
+```text
+Controller
+
+↓
+
+GetSomethingUseCase
+
+↓
+
+Repository
+```
+
+---
+
+## Nếu là Command đơn giản
+
+```text
+Controller
+
+↓
+
+UseCase
+
+↓
+
+Repository
+```
+
+---
+
+## Nếu có side-effect
+
+```text
+Controller
+
+↓
+
+UseCase
+
+↓
+
+Repository
+
+↓
+
+Event
+
+↓
+
+Listener
+```
+
+---
+
+## Nếu nặng
+
+```text
+Controller
+
+↓
+
+UseCase
+
+↓
+
+Event
+
+↓
+
+Queue
+
+↓
+
+Processor
+
+↓
+
+Event
+
+↓
+
+Listener
+```
+
+---
+
+# 8. VÍ DỤ UPLOAD ĐÚNG HƯỚNG
+
+Không:
+
+```text
+Controller
+
+↓
+
+Supabase
+
+↓
+
+Done
+```
+
+---
+
+Mà:
+
+```text
+UploadController
+
+↓
+
+UploadAvatarUseCase
+
+↓
+
+media.upload.requested
+
+↓
+
+MediaQueue
+
+↓
+
+MediaProcessor
+
+↓
+
+resize
+
+↓
+
+upload supabase
+
+↓
+
+media.upload.completed
+
+↓
+
+UserListener
+
+↓
+
+update avatar
+```
+
+---
+
+# 9. NGUYÊN TẮC QUAN TRỌNG NHẤT
+
+Khi code tiếp:
+
+```text
+Controller
+
+không business
+```
+
+```text
+Repository
+
+không business
+```
+
+```text
+Infrastructure
+
+không business
+```
+
+Business phải nằm ở:
+
+```text
+Application/
+
+UseCase
+```
+
+---
+
+Đó là kiến trúc mà backend hiện tại đang được refactor theo. Nó phù hợp với quy mô:
+
+```text
+Realtime Chat
+
+Upload
+
+Notification
+
+AI
+
+RAG
+
+Enterprise Feature
+```
+
+mà không cần microservice quá sớm. Sau này nếu tách service, từng module hiện tại có thể bóc ra khá dễ.
+
+
+/////////////////////////////////////
+
+Đúng. Đây là điểm rất quan trọng.
+
+Hiện tại kiến trúc của bạn **chưa phải UseCase thuần**.
+
+Bạn đang ở trạng thái chuyển tiếp:
+
+```text
+Controller
+
+↓
+
+Service
+
+↓
+
+UseCase
+
+↓
+
+Repository
+```
+
+hoặc
+
+```text
+Controller
+
+↓
+
+Service
+
+↓
+
+Repository
+```
+
+tùy module.
+
+---
+
+Ví dụ Message hiện tại:
+
+Bạn vẫn còn:
+
+```text
+MessageService
+```
+
+nhưng nhiều logic đã chuyển sang:
+
+```text
+SendMessageUseCase
+
+GetMessagesUseCase
+```
+
+Nghĩa là:
+
+```text
+MessageService
+
+=
+
+Facade Layer
+```
+
+---
+
+Ví dụ:
+
+```ts
+MessageController
+
+↓
+
+MessageService.send()
+
+↓
+
+SendMessageUseCase.execute()
+
+↓
+
+Repository
+```
+
+---
+
+Auth cũng tương tự.
+
+Hiện tại:
+
+```text
+AuthController
+
+↓
+
+AuthService
+
+↓
+
+LoginUseCase
+
+RegisterUseCase
+```
+
+(chúng ta đang refactor dần theo hướng đó)
+
+---
+
+Nên mô tả chính xác hiện tại là:
+
+```text
+Modular Monolith
+
++
+
+Service Layer
+
++
+
+UseCase Layer
+
++
+
+Event Driven
+```
+
+chứ chưa phải:
+
+```text
+Controller
+
+↓
+
+UseCase
+
+↓
+
+Repository
+```
+
+100%.
+
+---
+
+Thực tế có 2 hướng:
+
+## Hướng 1 — Giữ Service (mình khuyên)
+
+```text
+Controller
+
+↓
+
+Service
+
+↓
+
+UseCase
+
+↓
+
+Repository
+```
+
+Service đóng vai trò:
+
+```text
+Facade
+
+Orchestrator
+
+Entry Point
+```
+
+Ví dụ:
+
+```ts
+messageService.send()
+messageService.getMessages()
+```
+
+Frontend/backend dễ đọc.
+
+---
+
+## Hướng 2 — Bỏ Service hoàn toàn
+
+```text
+Controller
+
+↓
+
+UseCase
+
+↓
+
+Repository
+```
+
+Controller inject thẳng:
+
+```ts
+SendMessageUseCase
+GetMessagesUseCase
+```
+
+Kiểu CQRS rất mạnh.
+
+---
+
+Với dự án chat của bạn, mình khuyên:
+
+```text
+GIỮ SERVICE
+```
+
+Nhưng service phải mỏng.
+
+Ví dụ:
+
+```ts
+@Injectable()
+export class MessageService {
+
+ constructor(
+   private send:SendMessageUseCase,
+   private get:GetMessagesUseCase,
+ ){}
+
+ sendMessage(dto,userId){
+   return this.send.execute(dto,userId);
+ }
+
+ getMessages(id){
+   return this.get.execute(id);
+ }
+
+}
+```
+
+---
+
+Tức là kiến trúc hiện tại chính xác hơn là:
+
+```text
+Controller
+
+↓
+
+Service (Facade)
+
+↓
+
+UseCase (Business)
+
+↓
+
+Repository
+
+↓
+
+Event
+
+↓
+
+Queue
+
+↓
+
+Processor
+
+↓
+
+Listener
+```
+
+Và thật ra đây là kiến trúc mình thấy phù hợp nhất với NestJS enterprise, vì Nest vốn được thiết kế xoay quanh Service nên bỏ sạch Service đôi khi lại làm code khó đọc hơn.

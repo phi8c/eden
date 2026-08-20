@@ -1,0 +1,851 @@
+Được. Tổng hợp theo kiểu để mở chat mới là hiểu ngay: **kiến trúc đang theo đuổi, đã refactor gì, trạng thái hiện tại, còn thiếu gì**.
+
+# 1. MỤC TIÊU KIẾN TRÚC ĐÃ CHỐT
+
+Backend không làm kiểu:
+
+```text
+Controller
+↓
+Service
+↓
+Repository
+```
+
+nữa.
+
+Đang chuyển sang:
+
+```text
+Controller
+↓
+UseCase (Application)
+↓
+Repository
+↓
+Event
+↓
+Queue
+↓
+Processor
+↓
+Listener
+↓
+Socket / Cache / Notification
+```
+
+Mục tiêu:
+
+```text
+✓ maintain dễ
+✓ scale ngang nhiều instance
+✓ tách business với infrastructure
+✓ async workload
+✓ dễ đổi Redis/S3/Supabase
+✓ production-ready
+```
+
+---
+
+# 2. INFRASTRUCTURE ĐÃ LÀM
+
+Cấu trúc đang dần thành:
+
+```text
+src/
+
+infrastructure/
+
+ cache/
+ logger/
+ queue/
+ redis/
+ socket/
+ storage/
+```
+
+---
+
+## 2.1 Redis
+
+Đã có:
+
+```text
+RedisModule
+RedisService
+```
+
+Hỗ trợ:
+
+```ts
+set()
+
+get()
+
+exists()
+
+del()
+
+onModuleDestroy()
+```
+
+Dùng:
+
+```text
+Cache conversation
+Cache user
+Presence
+Future session
+```
+
+---
+
+## 2.2 Queue (BullMQ)
+
+Đã có:
+
+```text
+QueueConfig
+
+MessageQueue
+
+MediaQueue
+```
+
+Queue:
+
+```text
+message
+
+media
+```
+
+Đã sửa sang:
+
+```text
+ConfigService
+
+không dùng process.env
+```
+
+---
+
+## 2.3 Socket + Redis Adapter
+
+Đã có:
+
+```text
+ChatGateway
+
+SocketListener
+
+RedisIoAdapter
+```
+
+Flow:
+
+```text
+message.created
+
+↓
+
+socket emit
+
+↓
+
+FE realtime
+```
+
+Socket đã chuẩn bị scale nhiều server:
+
+```text
+Redis Adapter
+```
+
+---
+
+## 2.4 Storage Layer
+
+Đã có:
+
+```text
+infrastructure/storage/
+
+storage.interface.ts
+
+supabase-storage.service.ts
+
+local-storage.service.ts
+
+storage.module.ts
+```
+
+Mục tiêu:
+
+```text
+Supabase
+
+↓
+
+AWS S3
+
+↓
+
+MinIO
+
+↓
+
+Cloudflare R2
+```
+
+không sửa business.
+
+---
+
+# 3. GLOBAL CONFIG
+
+Đã refactor:
+
+Từ:
+
+```text
+process.env
+```
+
+sang:
+
+```text
+ConfigService
+```
+
+áp dụng cho:
+
+```text
+DB
+
+Redis
+
+Bull
+
+Socket
+
+Storage
+```
+
+=> nhất quán.
+
+---
+
+# 4. RATE LIMIT
+
+Đã làm:
+
+Global:
+
+```text
+100 req / phút
+```
+
+Riêng:
+
+```text
+login
+
+register
+
+message
+
+upload
+```
+
+dùng:
+
+```text
+RATE_LIMIT constant
+```
+
+Không hardcode.
+
+---
+
+# 5. HEALTH CHECK
+
+Đã có:
+
+```text
+HealthModule
+```
+
+để check:
+
+```text
+DB
+
+Redis
+
+Queue
+
+App
+```
+
+---
+
+# 6. MESSAGE MODULE (REFactor lớn nhất)
+
+Đây là module refactor nhiều nhất.
+
+Từ:
+
+```text
+MessageController
+
+↓
+
+MessageService
+
+↓
+
+Repository
+```
+
+sang:
+
+```text
+Controller
+
+↓
+
+SendMessageUseCase
+
+↓
+
+MessageRepository
+
+↓
+
+message.created
+
+↓
+
+Listeners
+
+↓
+
+Queue
+
+↓
+
+Socket
+```
+
+Đã có:
+
+### application/
+
+```text
+send-message.usecase.ts
+
+get-messages.usecase.ts
+```
+
+---
+
+### events/
+
+```text
+message-created.event.ts
+```
+
+---
+
+### listeners/
+
+```text
+message.listener.ts
+
+message-conversation.listener.ts
+```
+
+---
+
+### queue/
+
+```text
+MessageQueue
+```
+
+---
+
+Flow:
+
+```text
+send message
+
+↓
+
+save DB
+
+↓
+
+emit event
+
+↓
+
+update conversation
+
+↓
+
+create delivery
+
+↓
+
+socket
+
+↓
+
+queue
+```
+
+---
+
+# 7. CONVERSATION MODULE
+
+Refactor:
+
+Từ:
+
+```text
+ConversationService
+```
+
+sang:
+
+```text
+CreateConversationUseCase
+
+GetConversationsUseCase
+```
+
+Đã xử lý:
+
+```text
+duplicate private chat
+
+create topic default
+
+link pivot
+
+member
+```
+
+---
+
+Có event:
+
+```text
+ConversationCreatedEvent
+```
+
+---
+
+# 8. TOPIC MODULE
+
+Refactor:
+
+```text
+TopicService
+
+↓
+
+CreateTopicUseCase
+
+GetTopicsUseCase
+```
+
+Có:
+
+```text
+Default topic
+
+ConversationTopic link
+```
+
+---
+
+# 9. FRIENDSHIP MODULE
+
+Đã refactor:
+
+```text
+SendRequestUseCase
+
+AcceptUseCase
+
+RejectUseCase
+
+UnfriendUseCase
+```
+
+Flow:
+
+```text
+request
+
+↓
+
+accept
+
+↓
+
+status update
+```
+
+---
+
+# 10. AUTH MODULE
+
+Refactor:
+
+Từ:
+
+```text
+AuthService
+```
+
+sang:
+
+```text
+RegisterUseCase
+
+LoginUseCase
+
+RefreshTokenUseCase
+
+LogoutUseCase
+```
+
+Có:
+
+```text
+JWT
+
+Refresh Cookie
+
+Hash password
+
+Guard
+
+Strategy
+```
+
+---
+
+# 11. USER MODULE
+
+Refactor:
+
+```text
+GetProfileUseCase
+
+UpdateProfileUseCase
+
+SearchUserUseCase
+```
+
+---
+
+# 12. CACHE
+
+Đã chuẩn bị:
+
+Conversation:
+
+```text
+Redis
+
+↓
+
+GetConversationUseCase
+```
+
+User:
+
+```text
+Redis
+
+↓
+
+GetProfile
+```
+
+Chưa dùng hết.
+
+---
+
+# 13. UPLOAD MODULE (đang làm dở)
+
+Đã chuẩn bị nền:
+
+## Helpers
+
+```text
+helpers/media/
+
+image.helper.ts
+
+video.helper.ts
+
+thumbnail.helper.ts
+
+file.helper.ts
+
+path.helper.ts
+```
+
+---
+
+Image:
+
+```text
+avatar resize
+
+message resize
+
+webp optimize
+```
+
+---
+
+Path:
+
+```text
+avatars/
+
+messages/
+
+videos/
+```
+
+UUID:
+
+đang cân nhắc:
+
+```text
+v4
+
+↓
+
+v7
+```
+
+---
+
+## Storage
+
+Đã nối:
+
+```text
+Supabase bucket
+
+fallback local
+```
+
+---
+
+## Event-driven upload
+
+Đã có:
+
+```text
+media-upload-requested.event
+
+media-upload-completed.event
+```
+
+---
+
+Queue:
+
+```text
+media.queue
+```
+
+---
+
+Processor:
+
+```text
+media.processor
+```
+
+---
+
+Listener:
+
+```text
+media.listener
+```
+
+---
+
+Flow upload đang hướng tới:
+
+```text
+Upload
+
+↓
+
+emit event
+
+↓
+
+queue
+
+↓
+
+resize
+
+↓
+
+supabase
+
+↓
+
+completed
+
+↓
+
+update db
+```
+
+Chưa hoàn thiện.
+
+---
+
+# 14. NHỮNG GÌ CHƯA XONG
+
+Upload:
+
+```text
+avatar upload
+
+message image
+
+video upload
+
+thumbnail
+
+retry
+
+fallback auto
+```
+
+---
+
+Metrics:
+
+```text
+Prometheus
+```
+
+chưa.
+
+---
+
+Swagger:
+
+chưa.
+
+---
+
+Integration Test:
+
+chưa.
+
+---
+
+Notification:
+
+chưa.
+
+---
+
+Presence:
+
+chưa hoàn thiện.
+
+---
+
+# 15. KIẾN TRÚC CUỐI ĐANG HƯỚNG ĐẾN
+
+```text
+Controller
+
+↓
+
+UseCase
+
+↓
+
+Repository
+
+↓
+
+Event
+
+↓
+
+Queue
+
+↓
+
+Processor
+
+↓
+
+Listener
+
+↓
+
+Redis / Socket / Cache
+
+↓
+
+DB
+```
+
+Infrastructure:
+
+```text
+Storage
+
+Redis
+
+Queue
+
+Socket
+
+Logger
+
+Cache
+```
+
+Business:
+
+```text
+Auth
+
+User
+
+Message
+
+Conversation
+
+Topic
+
+Friendship
+
+Upload
+```
+
+Đó là trạng thái backend hiện tại. Nền đã mạnh hơn lúc đầu khá nhiều, nhưng Upload + Metrics + Test vẫn chưa hoàn thiện.

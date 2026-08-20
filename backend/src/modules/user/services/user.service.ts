@@ -1,40 +1,80 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { UserRepository } from '../repositories/user.repository';
-import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { Injectable }
+from '@nestjs/common';
+
+import { UpdateProfileDto }
+from '../dto/update-profile.dto';
+
+import { GetProfileUseCase }
+from '../application/get-profile.usecase';
+
+import { UpdateProfileUseCase }
+from '../application/update-profile.usecase';
+
+import { SearchUsersUseCase }
+from '../application/search-users.usecase';
 
 
-@Injectable() 
-    export class UserService {
-        constructor(
-         private readonly userRepository: UserRepository,
-        ){}
+@Injectable()
 
-        async getProfile(userId: number) {
-            const user = await this.userRepository.findById(userId);
-            if(!user) {
-                 throw new NotFoundException('User not found');
-            }
-            const profile = await this.userRepository.findProfile(userId);
-            return {
-                user,
-                profile,
-            };
-            
-        }
-        async updateProfile(userId: number, dto: UpdateProfileDto) {
+export class UserService{
 
-    const user = await this.userRepository.findById(userId);
+ constructor(
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+   private readonly getProfileUseCase:
+   GetProfileUseCase,
 
-    const profile = await this.userRepository.updateProfile(userId, dto);
+   private readonly updateProfileUseCase:
+   UpdateProfileUseCase,
 
-    return {
-      message: 'Profile updated',
-      profile,
-    };
-  }
+   private readonly searchUsersUseCase:
+   SearchUsersUseCase,
 
-    }
+ ){}
+
+ getProfile(
+   userId:number,
+ ){
+
+   return this
+   .getProfileUseCase
+   .execute(
+
+      userId
+
+   );
+
+ }
+
+
+ updateProfile(
+
+   userId:number,
+
+   dto:UpdateProfileDto,
+
+ ){
+
+   return this
+   .updateProfileUseCase
+   .execute(
+
+      userId,
+
+      dto,
+
+   );
+
+ }
+
+
+ searchUsers(
+   q:string,
+ ){
+
+   return this
+   .searchUsersUseCase
+   .execute(q);
+
+ }
+
+}

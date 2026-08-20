@@ -18,7 +18,7 @@ export class Message {
   conversation_id: number;
 
   @Column()
-topic_id: number;
+  topic_id: number;
 
   @Column()
   sender_id: number;
@@ -43,5 +43,5 @@ topic_id: number;
 
   @ManyToOne(() => Topic)
   @JoinColumn({ name: 'topic_id' })
-topic: Topic;
+  topic: Topic;
 }

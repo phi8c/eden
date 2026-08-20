@@ -9,37 +9,71 @@ import {
 import { User } from '../../../user/entities/user.entity';
 import { Conversation } from './conversation.entity';
 
+export enum ConversationMemberRole {
+  MEMBER = 'member',
+  ADMIN = 'admin',
+}
+
 @Entity('conversation_members')
 export class ConversationMember {
-  @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
+
+  @PrimaryGeneratedColumn({
+    type: 'bigint',
+    unsigned: true,
+  })
   id: number;
 
-  @Column()
+  @Column({
+    type: 'bigint',
+    unsigned: true,
+  })
   conversation_id: number;
 
-  @Column()
+  @Column({
+    type: 'bigint',
+    unsigned: true,
+  })
   user_id: number;
 
- @Column({
-  type: 'enum',
-  enum: ['member', 'admin'],
-  default: 'member',
-})
-role: 'member' | 'admin';
+  @Column({
+    type: 'enum',
+    enum: ConversationMemberRole,
+    default: ConversationMemberRole.MEMBER,
+  })
+  role: ConversationMemberRole;
 
-  @Column()
+  @Column({
+    type: 'timestamp',
+  })
   joined_at: Date;
 
-  @Column({ nullable: true })
-  last_read_message_id: number;
+  @Column({
+    type: 'bigint',
+    unsigned: true,
+    nullable: true,
+  })
+  last_read_message_id: number | null;
 
-  // 🔥 RELATIONS
-
-  @ManyToOne(() => Conversation, (c) => c.members)
-  @JoinColumn({ name: 'conversation_id' })
+  @ManyToOne(
+    () => Conversation,
+    (conversation) => conversation.members,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
+  @JoinColumn({
+    name: 'conversation_id',
+  })
   conversation: Conversation;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'user_id' })
+  @ManyToOne(
+    () => User,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
+  @JoinColumn({
+    name: 'user_id',
+  })
   user: User;
 }

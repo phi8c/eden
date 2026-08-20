@@ -1,24 +1,19 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Conversation } from '../../conversations/entities/conversation.entity';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('topics')
 export class Topic {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
+  id: number;
 
-    @Column()
-    name: string;
+  @Column({ type: 'varchar', length: 100 })
+  name: string;
 
-    @Column()
-    conversation_id: number;
+  @Column({ type: 'text', nullable: true })
+  description: string;
 
-    @ManyToOne(() => Conversation)
-    @JoinColumn({name: 'conversation_id'})
-    conversation: Conversation;
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  created_by: number;
 
-    @Column({nullable: true})
-    created_by: number;
-    @Column({type: 'datetime', default: ()=> 'CURRENT_TIMESTAMP'})
-    created_at: Date;
-
+  @Column({ type: 'datetime' })
+  created_at: Date;
 }

@@ -1,26 +1,28 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn } from "typeorm";
 
-@Entity({ name: 'user_profiles' })
+@Entity({ name: "user_profiles" })
 export class UserProfile {
+  @PrimaryColumn({
+    name: "user_id",
+    type: "bigint",
+    unsigned: true,
+  })
+  userId: number;
 
-  @PrimaryGeneratedColumn()
-  id: number;
+  @Column({
+    name: "display_name",
+    nullable: true,
+  })
+  displayName: string;
 
-  @Column()
-  user_id: number;
+  @Column({
+    name: "avatar_url",
+    nullable: true,
+  })
+  avatarUrl: string;
 
-  @Column({ nullable: true })
-  avatar_url: string;
-
-  @Column({ nullable: true })
+  @Column({
+    nullable: true,
+  })
   bio: string;
-
-  @Column({ nullable: true })
-  location: string;
-
-  @Column()
-  created_at: Date;
-
-  @Column()
-  updated_at: Date;
 }

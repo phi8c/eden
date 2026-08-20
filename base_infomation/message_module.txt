@@ -1,0 +1,405 @@
+Được. Mình sẽ khóa **module Message sau refactor** theo kiểu dùng làm "checkpoint". Lần sau chỉ cần đưa đoạn này là mình biết trạng thái hiện tại.
+
+# Module Message — Trước refactor
+
+Kiến trúc cũ:
+
+```text id="njlwm4"
+Controller
+↓
+
+MessageService
+   - validate
+   - repo
+   - emit event
+   - business
+
+↓
+
+Repository
+
+↓
+
+Listener
+
+↓
+
+DB
+```
+
+---
+
+Làm được:
+
+```text id="jlwm6h"
+✓ POST /messages
+
+✓ GET /messages?topicId=
+
+✓ create message_delivery
+
+✓ update conversation.last_message
+```
+
+---
+
+# Module Message — Sau refactor
+
+Kiến trúc mới:
+
+```text id="jlwm2t"
+Controller
+
+↓
+
+MessageService
+(Facade)
+
+↓
+
+UseCase
+
+↓
+
+Repository
+
+↓
+
+emit()
+
+↓
+
+Listener
+
+↓
+
+Queue
+
+↓
+
+Processor
+
+↓
+
+DB
+```
+
+---
+
+# 1. Thêm application layer
+
+Đã tạo:
+
+```text id="kjlwmq"
+messages/
+
+application/
+
+   send-message.usecase.ts
+
+   get-messages.usecase.ts
+```
+
+---
+
+## send-message.usecase.ts
+
+Chứa business cũ:
+
+```text id="0jlwm8"
+validate content
+
+↓
+
+save message
+
+↓
+
+emit message.created
+```
+
+---
+
+## get-messages.usecase.ts
+
+Chứa:
+
+```text id="bjlwm8"
+check topic
+
+↓
+
+findByTopicId()
+```
+
+---
+
+# 2. MessageService đổi vai trò
+
+Từ:
+
+```text id="jlwm1z"
+business layer
+```
+
+↓
+
+Thành:
+
+```text id="mjlwm4"
+facade layer
+```
+
+Hiện chỉ:
+
+```text id="gjlwmf"
+sendMessage()
+
+↓
+
+SendMessageUseCase.execute()
+
+
+getMessageByTopic()
+
+↓
+
+GetMessagesUseCase.execute()
+```
+
+---
+
+# 3. MessageModule sửa
+
+Đã thêm provider:
+
+```text id="5jlwmv"
+SendMessageUseCase
+
+GetMessagesUseCase
+```
+
+vào:
+
+```text id="zjlwmc"
+message.module.ts
+```
+
+---
+
+Đã thêm:
+
+```text id="cjlwmv"
+BullModule.registerQueue({
+
+ name:'message'
+
+})
+```
+
+---
+
+# 4. Queue foundation cho Message
+
+Đã tạo:
+
+```text id="jlwm3q"
+infrastructure/
+
+queue/
+
+queues/
+
+   message.queue.ts
+```
+
+---
+
+Queue nhận:
+
+```text id="4jlwmj"
+message.created
+```
+
+---
+
+# 5. Processor
+
+Đã tạo:
+
+```text id="wjlwmn"
+infrastructure/
+
+queue/
+
+processors/
+
+   message.processor.ts
+```
+
+---
+
+Processor hiện xử lý:
+
+```text id="6jlwmm"
+create message_delivery
+
++
+
+update conversation.last_message
+```
+
+---
+
+# 6. Listener đổi nhiệm vụ
+
+Trước:
+
+```text id="vjlwmw"
+Listener
+
+↓
+
+DB write trực tiếp
+```
+
+---
+
+Sau:
+
+```text id="djlwmv"
+Listener
+
+↓
+
+Queue.add()
+
+↓
+
+Processor
+
+↓
+
+DB
+```
+
+---
+
+## MessageListener
+
+Trước:
+
+```text id="hjlwmx"
+create delivery
+```
+
+↓
+
+Giờ:
+
+```text id="1jlwm5"
+queue.add()
+```
+
+---
+
+## MessageConversationListener
+
+Trước:
+
+```text id="1jlwmh"
+update conversation
+```
+
+↓
+
+Giờ:
+
+```text id="pjlwm3"
+queue.add()
+```
+
+---
+
+# 7. Không đổi API
+
+FE không cần sửa.
+
+Vẫn:
+
+```text id="sjlwm4"
+POST /messages
+
+GET /messages?topicId=
+```
+
+---
+
+# 8. Không thêm tính năng mới
+
+CHƯA làm:
+
+```text id="cjlwm1"
+Unread
+
+Seen
+
+Notification
+
+Presence
+
+Socket
+
+Analytics
+```
+
+Cố tình không làm.
+
+---
+
+# Trạng thái module Message hiện tại
+
+Đánh giá:
+
+```text id="5jlwm6"
+Behavior cũ:
+100%
+
+Kiến trúc mới:
+≈ 80%
+
+Scale:
+khá ổn
+
+Microservice ready:
+có
+
+Queue ready:
+có
+
+Event-driven:
+có
+```
+
+---
+
+Checkpoint để nhớ:
+
+```text id="6jlwmg"
+Message module
+
+=
+HOÀN TẤT REFACTOR
+
+KHÔNG thêm feature
+
+CHUYỂN MODULE KHÁC
+```
+
+Lần sau chỉ cần nói:
+
+```text id="7jlwmz"
+tiếp tục từ checkpoint Message refactor
+```
+
+là mình sẽ bám đúng trạng thái này.

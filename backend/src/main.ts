@@ -1,17 +1,130 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import cookieParser from 'cookie-parser';
+import 'reflect-metadata';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+import { NestFactory }
+from '@nestjs/core';
 
-  app.enableCors({
-    origin: 'http://localhost:5173',
-    credentials: true,
-  });
+import { AppModule }
+from './app.module';
 
-  app.use(cookieParser()); // ✅ OK
+import cookieParser
+from 'cookie-parser';
 
-  await app.listen(process.env.PORT ?? 3000);
+import { RedisIoAdapter }
+from './infrastructure/socket/socket.adapter';
+
+import { ConfigService }
+from '@nestjs/config';
+
+import {
+
+ ValidationPipe
+
 }
+from '@nestjs/common';
+
+import {
+
+ ThrottlerGuard
+
+}
+from '@nestjs/throttler';
+
+import {
+
+ Reflector
+
+}
+from '@nestjs/core';
+
+
+
+async function bootstrap(){
+
+ const app =
+
+ await NestFactory.create(
+   AppModule
+ );
+
+  const config =
+
+ app.get(
+   ConfigService
+ );
+
+
+ app.enableCors({
+
+   origin:
+    config.get<string>(
+      'FE_PORT'
+   ),
+
+
+   credentials:true,
+
+ });
+ 
+
+ app.use(
+   cookieParser()
+ );
+
+
+
+ 
+
+ app.useGlobalPipes(
+
+ new ValidationPipe({
+
+   whitelist:true,
+
+   transform:true,
+
+   transformOptions: {
+
+     enableImplicitConversion: true,
+
+   },
+
+   forbidNonWhitelisted:true,
+
+ }),
+
+);
+
+
+
+
+
+
+
+ /* NEW */
+
+ const redisAdapter =
+
+ new RedisIoAdapter(
+    app
+ );
+
+ await redisAdapter.connect();
+
+ app.useWebSocketAdapter(
+
+    redisAdapter
+
+ );
+
+
+ await app.listen(
+
+   process.env.PORT ??
+
+   3000
+
+ );
+
+}
+
 bootstrap();

@@ -1,0 +1,385 @@
+backend/
+│
+├── src/
+│
+│   ├── main.ts
+│   ├── app.module.ts
+│
+│
+│   ├── common/
+│   │
+│   │   ├── constants/
+│   │   │      auth.constant.ts
+│   │   │
+│   │   ├── guards/
+│   │   │      jwt-auth.guard.ts
+│   │   │
+│   │   ├── decorators/
+│   │   │      current-user.decorator.ts
+│   │   │
+│   │   ├── filters/
+│   │   │      http-exception.filter.ts
+│   │   │
+│   │   ├── interceptors/
+│   │   │      logging.interceptor.ts
+│   │   │
+│   │   └── exceptions/
+│   │          base.exception.ts
+│   │
+│   │
+│   ├── config/
+│   │
+│   │   ├── database/
+│   │   │      database.config.ts
+│   │   │
+│   │   ├── redis/
+│   │   │      redis.config.ts
+│   │   │
+│   │   ├── queue/
+│   │   │      bull.config.ts
+│   │   │
+│   │   ├── socket/
+│   │   │      socket.config.ts
+│   │   │
+│   │   ├── auth/
+│   │   │      jwt.config.ts
+│   │   │
+│   │   └── storage/
+│   │          storage.config.ts
+│   │
+│   │
+│   ├── shared/
+│   │
+│   │   ├── pagination/
+│   │   │      cursor-pagination.ts
+│   │   │
+│   │   ├── dto/
+│   │   │      api-response.dto.ts
+│   │   │
+│   │   ├── interfaces/
+│   │   │      cursor.interface.ts
+│   │   │
+│   │   ├── utils/
+│   │   │      date.util.ts
+│   │   │
+│   │   └── validators/
+│   │          id.validator.ts
+│   │
+│   │
+│   ├── infrastructure/
+│   │
+│   │   ├── redis/
+│   │   │
+│   │   │      redis.module.ts
+│   │   │      redis.service.ts
+│   │   │
+│   │   │      clients/
+│   │   │          redis.client.ts
+│   │   │
+│   │   │
+│   │   ├── queue/
+│   │   │
+│   │   │      bull.module.ts
+│   │   │
+│   │   │      processors/
+│   │   │          notification.processor.ts
+│   │   │          analytics.processor.ts
+│   │   │
+│   │   │      queues/
+│   │   │          notification.queue.ts
+│   │   │          message.queue.ts
+│   │   │
+│   │   │
+│   │   ├── cache/
+│   │   │      cache.module.ts
+│   │   │      cache.service.ts
+│   │   │
+│   │   │
+│   │   ├── logger/
+│   │   │      logger.module.ts
+│   │   │      logger.service.ts
+│   │   │
+│   │   │
+│   │   ├── storage/
+│   │   │      minio.module.ts
+│   │   │      storage.service.ts
+│   │   │
+│   │   │
+│   │   └── socket/
+│   │          socket.adapter.ts
+│   │
+│   │
+│   ├── modules/
+│   │
+│   │
+│   │   ├── auth/
+│   │   │
+│   │   │      application/
+│   │   │          login.usecase.ts
+│   │   │          register.usecase.ts
+│   │   │          refresh.usecase.ts
+│   │   │
+│   │   │
+│   │   │      domain/
+│   │   │          jwt-payload.interface.ts
+│   │   │
+│   │   │
+│   │   │      infrastructure/
+│   │   │          auth.repository.ts
+│   │   │
+│   │   │
+│   │   │      presentation/
+│   │   │
+│   │   │          controllers/
+│   │   │              auth.controller.ts
+│   │   │
+│   │   │          dto/
+│   │   │              login.dto.ts
+│   │   │              register.dto.ts
+│   │   │
+│   │   │          strategies/
+│   │   │              jwt.strategy.ts
+│   │   │
+│   │   │
+│   │   │      auth.module.ts
+│   │
+│   │
+│   │
+│   │   ├── users/
+│   │   │
+│   │   │      application/
+│   │   │          update-profile.usecase.ts
+│   │   │          search-user.usecase.ts
+│   │   │
+│   │   │
+│   │   │      domain/
+│   │   │          entities/
+│   │   │              user.entity.ts
+│   │   │              user-profile.entity.ts
+│   │   │
+│   │   │
+│   │   │      infrastructure/
+│   │   │          user.repository.ts
+│   │   │
+│   │   │
+│   │   │      presentation/
+│   │   │          user.controller.ts
+│   │   │          dto/
+│   │   │
+│   │   │
+│   │   │      user.module.ts
+│   │
+│   │
+│   │
+│   │   ├── chat/
+│   │   │
+│   │   │   ├── conversations/
+│   │   │   │
+│   │   │   │      application/
+│   │   │   │           create-conversation.usecase.ts
+│   │   │   │           get-conversations.usecase.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      domain/
+│   │   │   │
+│   │   │   │           entities/
+│   │   │   │               conversation.entity.ts
+│   │   │   │
+│   │   │   │           events/
+│   │   │   │               conversation.created.event.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      infrastructure/
+│   │   │   │           conversation.repository.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      presentation/
+│   │   │   │           conversation.controller.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      listeners/
+│   │   │   │           conversation.listener.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      conversation.module.ts
+│   │   │   │
+│   │   │   │
+│   │   │   ├── topics/
+│   │   │   │
+│   │   │   │      application/
+│   │   │   │           create-topic.usecase.ts
+│   │   │   │           get-topic.usecase.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      domain/
+│   │   │   │           topic.entity.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      infrastructure/
+│   │   │   │           topic.repository.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      presentation/
+│   │   │   │           topic.controller.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      topic.module.ts
+│   │   │   │
+│   │   │   │
+│   │   │   ├── messages/
+│   │   │   │
+│   │   │   │      application/
+│   │   │   │
+│   │   │   │          send-message.usecase.ts
+│   │   │   │
+│   │   │   │          get-messages.usecase.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      domain/
+│   │   │   │
+│   │   │   │          entities/
+│   │   │   │              message.entity.ts
+│   │   │   │
+│   │   │   │          events/
+│   │   │   │              message.created.event.ts
+│   │   │   │              message.deleted.event.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      infrastructure/
+│   │   │   │
+│   │   │   │          repositories/
+│   │   │   │              message.repository.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      presentation/
+│   │   │   │
+│   │   │   │          controllers/
+│   │   │   │              message.controller.ts
+│   │   │   │
+│   │   │   │          dto/
+│   │   │   │              send-message.dto.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      listeners/
+│   │   │   │
+│   │   │   │          message.listener.ts
+│   │   │   │          unread.listener.ts
+│   │   │   │
+│   │   │   │
+│   │   │   │      message.module.ts
+│   │   │
+│   │   │
+│   │   ├── realtime/
+│   │   │
+│   │   │      presentation/
+│   │   │
+│   │   │          gateways/
+│   │   │
+│   │   │             chat.gateway.ts
+│   │   │             presence.gateway.ts
+│   │   │
+│   │   │
+│   │   │      realtime.module.ts
+│   │
+│   │
+│   │   ├── presence/
+│   │   │
+│   │   │      application/
+│   │   │
+│   │   │      listeners/
+│   │   │
+│   │   │      presence.module.ts
+│   │
+│   │
+│   │   ├── notifications/
+│   │   │
+│   │   │      application/
+│   │   │
+│   │   │      listeners/
+│   │   │
+│   │   │      notification.module.ts
+│   │
+│   │
+│   │   ├── analytics/
+│   │   │
+│   │   │      listeners/
+│   │   │
+│   │   │      analytics.module.ts
+│   │
+│   │
+│   │   └── friendship/
+│   │
+│   │          application/
+│   │
+│   │          infrastructure/
+│   │
+│   │          presentation/
+│   │
+│   │          friendship.module.ts
+│
+│
+└── test/
+
+
+
+
+src/
+
+modules/
+
+ upload/
+
+   controllers/
+
+      upload.controller.ts
+
+   services/
+
+      upload.service.ts
+
+   dto/
+
+      upload.dto.ts
+
+   application/
+
+      upload-avatar.usecase.ts
+
+      upload-message.usecase.ts
+
+      upload-cover.usecase.ts
+
+      upload-document.usecase.ts
+
+   upload.module.ts
+
+
+
+infrastructure/
+
+ media/
+
+   helpers/
+
+      image.helper.ts
+
+      video.helper.ts
+
+      file.helper.ts
+
+      thumbnail.helper.ts
+
+
+   storage/
+
+      interfaces/
+
+        storage.interface.ts
+
+      providers/
+
+        supabase-storage.service.ts
+
+        local-storage.service.ts
+
+      storage.module.ts

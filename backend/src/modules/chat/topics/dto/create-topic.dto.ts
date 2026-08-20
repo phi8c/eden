@@ -1,5 +1,4 @@
 export class CreateTopicDto {
-    conversationId: number;
-    name: string;
-    
+  conversationId: number;
+  name: string;
 }
