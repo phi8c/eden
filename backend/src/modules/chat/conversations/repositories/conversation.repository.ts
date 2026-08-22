@@ -85,20 +85,35 @@ export class ConversationRepository {
   async findByUserId(
     userId: number,
   ) {
-    return this.conversationRepo.find({
-      relations: [
+    return this.conversationRepo
+      .createQueryBuilder('conversation')
+      .innerJoin(
+        'conversation.members',
+        'currentMember',
+        'currentMember.user_id = :userId',
+        { userId },
+      )
+      .leftJoinAndSelect(
+        'conversation.members',
         'members',
+      )
+      .leftJoinAndSelect(
+        'members.user',
+        'user',
+      )
+      .leftJoinAndSelect(
+        'conversation.last_message',
         'last_message',
-      ],
-      where: {
-        members: {
-          user_id: userId,
-        },
-      },
-      order: {
-        last_message_at: 'DESC',
-      },
-    });
+      )
+      .orderBy(
+        'conversation.last_message_at',
+        'DESC',
+      )
+      .addOrderBy(
+        'conversation.created_at',
+        'DESC',
+      )
+      .getMany();
   }
 
   async findPrivateConversation(
@@ -128,5 +143,18 @@ export class ConversationRepository {
         { type: ConversationType.PRIVATE },
       )
       .getOne();
+  }
+
+  async findById(
+    conversationId: number,
+  ) {
+    return this.conversationRepo.findOne({
+      where: {
+        id: conversationId,
+      },
+      relations: [
+        'members',
+      ],
+    });
   }
 }

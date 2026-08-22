@@ -9,3 +9,198 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcm5pdnR
 
 
 db.esrnivtvznjwyhfrcchs.supabase.co
+
+
+
+
+
+
+
+-- ============================================================
+-- LOCATION SHARING
+-- ============================================================
+
+DROP TABLE IF EXISTS `location_photos`;
+DROP TABLE IF EXISTS `location_share_members`;
+DROP TABLE IF EXISTS `location_share_sessions`;
+
+
+-- ============================================================
+-- 1. LOCATION SHARE SESSIONS
+-- Một session = một lần chia sẻ vị trí trong một conversation
+-- ============================================================
+
+CREATE TABLE `location_share_sessions` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+
+  `conversation_id` bigint unsigned NOT NULL,
+  `created_by` bigint unsigned NOT NULL,
+
+  /*
+   * Đơn vị: phút
+   * Ví dụ:
+   * 60  = 1 giờ
+   * 120 = 2 giờ
+   */
+  `duration_minutes` smallint unsigned NOT NULL,
+
+  /*
+   * 0 = PENDING
+   * 1 = ACTIVE
+   * 2 = REJECTED
+   * 3 = STOPPED
+   * 4 = EXPIRED
+   */
+  `status` tinyint unsigned NOT NULL DEFAULT '0',
+
+  `started_at` datetime DEFAULT NULL,
+  `expires_at` datetime NOT NULL,
+
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_location_session_conversation`
+    (`conversation_id`),
+
+  KEY `idx_location_session_status_expires`
+    (`status`, `expires_at`),
+
+  KEY `idx_location_session_created_by`
+    (`created_by`),
+
+  CONSTRAINT `fk_location_session_conversation`
+    FOREIGN KEY (`conversation_id`)
+    REFERENCES `conversations` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_location_session_created_by`
+    FOREIGN KEY (`created_by`)
+    REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 2. LOCATION SHARE MEMBERS
+-- Thành viên tham gia session + consent + last known location
+-- ============================================================
+
+CREATE TABLE `location_share_members` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+
+  `session_id` bigint unsigned NOT NULL,
+  `user_id` bigint unsigned NOT NULL,
+
+  /*
+   * 0 = PENDING
+   * 1 = ACCEPTED
+   * 2 = REJECTED
+   * 3 = STOPPED
+   */
+  `consent_status` tinyint unsigned NOT NULL DEFAULT '0',
+
+  `responded_at` datetime DEFAULT NULL,
+
+  /*
+   * Last known location.
+   * Đây KHÔNG phải location history.
+   * Chỉ lưu vị trí cuối cùng server biết.
+   */
+  `last_latitude` decimal(10,7) DEFAULT NULL,
+  `last_longitude` decimal(10,7) DEFAULT NULL,
+  `last_accuracy` decimal(8,2) DEFAULT NULL,
+  `last_location_at` datetime DEFAULT NULL,
+
+  `stopped_at` datetime DEFAULT NULL,
+
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  UNIQUE KEY `uq_location_session_member`
+    (`session_id`, `user_id`),
+
+  KEY `idx_location_member_user`
+    (`user_id`),
+
+  KEY `idx_location_member_consent`
+    (`session_id`, `consent_status`),
+
+  CONSTRAINT `fk_location_member_session`
+    FOREIGN KEY (`session_id`)
+    REFERENCES `location_share_sessions` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_location_member_user`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 3. LOCATION PHOTOS
+-- Ảnh khoảnh khắc gắn với vị trí trong một location session
+-- ============================================================
+
+CREATE TABLE `location_photos` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+
+  `session_id` bigint unsigned NOT NULL,
+  `user_id` bigint unsigned NOT NULL,
+
+  `latitude` decimal(10,7) NOT NULL,
+  `longitude` decimal(10,7) NOT NULL,
+  `accuracy` decimal(8,2) DEFAULT NULL,
+
+  /*
+   * Không lưu URL provider.
+   * Lưu key/path để storage provider độc lập.
+   *
+   * Ví dụ:
+   * conversations/4/location/session-101/user-1/abc.webp
+   */
+  `storage_key` varchar(1000) NOT NULL,
+  `thumbnail_key` varchar(1000) DEFAULT NULL,
+
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `expires_at` datetime NOT NULL,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_location_photo_session`
+    (`session_id`),
+
+  KEY `idx_location_photo_user`
+    (`user_id`),
+
+  KEY `idx_location_photo_expires`
+    (`expires_at`),
+
+  KEY `idx_location_photo_coordinates`
+    (`latitude`, `longitude`),
+
+  CONSTRAINT `fk_location_photo_session`
+    FOREIGN KEY (`session_id`)
+    REFERENCES `location_share_sessions` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_location_photo_user`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;

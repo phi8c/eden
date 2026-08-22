@@ -28,15 +28,6 @@ import { AppCache } from './infrastructure/cache/cache.module';
 
 
 
-import {
-
- StorageModule
-
-}
-
-from './infrastructure/storage/storage.module';
-
-
 import { ConfigService }
 from '@nestjs/config';
 
@@ -65,6 +56,7 @@ import {
 
 }
 from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
 
@@ -77,7 +69,7 @@ from '@nestjs/throttler';
 
    }),
 
-   StorageModule,
+   ScheduleModule.forRoot(),
 
    ThrottlerModule.forRoot([
 

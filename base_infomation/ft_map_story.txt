@@ -1,0 +1,461 @@
+-- ============================================================
+-- CHAT APP - CHAT MAP MODE
+-- MySQL 8.x
+--
+-- New tables:
+--   1. map_share_sessions
+--   2. map_session_members
+--   3. storage_assets
+--   4. map_moments
+--   5. map_moment_media
+--   6. notifications
+--
+-- Existing tables are NOT modified.
+-- ============================================================
+
+USE chat_app;
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+
+-- ============================================================
+-- 1. MAP SHARE SESSIONS
+-- ============================================================
+-- status:
+--   0 = PENDING
+--   1 = ACTIVE
+--   2 = REJECTED
+--   3 = CANCELLED
+--   4 = EXPIRED
+--
+-- end_reason:
+--   NULL = chưa kết thúc
+--   0 = USER_STOPPED
+--   1 = EXPIRED
+--   2 = SYSTEM
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `map_share_sessions` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    `conversation_id` BIGINT UNSIGNED NOT NULL,
+
+    `requested_by` BIGINT UNSIGNED NOT NULL,
+    `requested_to` BIGINT UNSIGNED NOT NULL,
+
+    `duration_minutes` SMALLINT UNSIGNED NOT NULL,
+
+    `status` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+
+    `requested_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `accepted_at` DATETIME DEFAULT NULL,
+
+    `started_at` DATETIME DEFAULT NULL,
+    `expires_at` DATETIME DEFAULT NULL,
+
+    `ended_at` DATETIME DEFAULT NULL,
+    `ended_by` BIGINT UNSIGNED DEFAULT NULL,
+    `end_reason` TINYINT UNSIGNED DEFAULT NULL,
+
+    PRIMARY KEY (`id`),
+
+    KEY `idx_map_session_conversation_status`
+        (`conversation_id`, `status`),
+
+    KEY `idx_map_session_status_expires`
+        (`status`, `expires_at`),
+
+    KEY `idx_map_session_requested_by`
+        (`requested_by`),
+
+    KEY `idx_map_session_requested_to`
+        (`requested_to`),
+
+    CONSTRAINT `fk_map_session_conversation`
+        FOREIGN KEY (`conversation_id`)
+        REFERENCES `conversations` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_map_session_requested_by`
+        FOREIGN KEY (`requested_by`)
+        REFERENCES `users` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_map_session_requested_to`
+        FOREIGN KEY (`requested_to`)
+        REFERENCES `users` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_map_session_ended_by`
+        FOREIGN KEY (`ended_by`)
+        REFERENCES `users` (`id`)
+        ON DELETE SET NULL,
+
+    CONSTRAINT `chk_map_session_duration`
+        CHECK (`duration_minutes` IN (60, 120)),
+
+    CONSTRAINT `chk_map_session_users`
+        CHECK (`requested_by` <> `requested_to`)
+
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 2. MAP SESSION MEMBERS
+-- ============================================================
+-- Mỗi session hiện tại sẽ có 2 users.
+--
+-- location_ready:
+--   client đã cấp location và backend đã nhận được vị trí hợp lệ.
+--
+-- location_ready KHÔNG phải OS/browser permission state.
+-- Permission thật vẫn do client quản lý.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `map_session_members` (
+    `session_id` BIGINT UNSIGNED NOT NULL,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+
+    `location_ready` TINYINT(1) NOT NULL DEFAULT 0,
+
+    `joined_at` DATETIME DEFAULT NULL,
+
+    `last_location_at` DATETIME DEFAULT NULL,
+
+    PRIMARY KEY (`session_id`, `user_id`),
+
+    KEY `idx_map_session_member_user`
+        (`user_id`),
+
+    CONSTRAINT `fk_map_member_session`
+        FOREIGN KEY (`session_id`)
+        REFERENCES `map_share_sessions` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_map_member_user`
+        FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`)
+        ON DELETE CASCADE
+
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 3. STORAGE ASSETS
+-- ============================================================
+-- Generic storage table.
+--
+-- provider:
+--   1 = GOOGLE_DRIVE
+--   Future:
+--   2 = S3
+--   3 = AZURE_BLOB
+--   4 = GCS
+--
+-- purpose:
+--   1 = MESSAGE_ATTACHMENT
+--   2 = MAP_MOMENT
+--   3 = AVATAR
+--   4+ = future features
+--
+-- status:
+--   0 = ACTIVE
+--   1 = DELETE_PENDING
+--   2 = DELETED
+--   3 = DELETE_FAILED
+--
+-- provider_file_id:
+--   Google Drive file ID.
+--
+-- provider_parent_id:
+--   Google Drive folder ID.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `storage_assets` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    `owner_user_id` BIGINT UNSIGNED NOT NULL,
+
+    `provider` TINYINT UNSIGNED NOT NULL,
+
+    `purpose` TINYINT UNSIGNED NOT NULL,
+
+    `provider_file_id` VARCHAR(255) NOT NULL,
+
+    `provider_parent_id` VARCHAR(255) DEFAULT NULL,
+
+    `original_filename` VARCHAR(255) DEFAULT NULL,
+
+    `stored_filename` VARCHAR(255) DEFAULT NULL,
+
+    `mime_type` VARCHAR(100) NOT NULL,
+
+    `size_bytes` BIGINT UNSIGNED DEFAULT NULL,
+
+    `status` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    `expires_at` DATETIME DEFAULT NULL,
+
+    `delete_attempted_at` DATETIME DEFAULT NULL,
+
+    `deleted_at` DATETIME DEFAULT NULL,
+
+    PRIMARY KEY (`id`),
+
+    UNIQUE KEY `uniq_storage_provider_file`
+        (`provider`, `provider_file_id`),
+
+    KEY `idx_storage_owner`
+        (`owner_user_id`, `created_at`),
+
+    KEY `idx_storage_purpose`
+        (`purpose`, `created_at`),
+
+    KEY `idx_storage_cleanup`
+        (`status`, `expires_at`),
+
+    CONSTRAINT `fk_storage_asset_owner`
+        FOREIGN KEY (`owner_user_id`)
+        REFERENCES `users` (`id`)
+        ON DELETE CASCADE
+
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 4. MAP MOMENTS
+-- ============================================================
+-- Moment được đóng đinh tại vị trí lúc upload.
+-- Nó KHÔNG di chuyển theo realtime location của user.
+--
+-- visible_until:
+--   MIN(created_at + 30 phút, session.expires_at)
+--
+-- latitude / longitude:
+--   backend lấy từ realtime location của session.
+--   Không tin trực tiếp lat/lng gửi kèm upload từ client.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `map_moments` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    `session_id` BIGINT UNSIGNED NOT NULL,
+
+    `conversation_id` BIGINT UNSIGNED NOT NULL,
+
+    `user_id` BIGINT UNSIGNED NOT NULL,
+
+    `latitude` DECIMAL(10,7) NOT NULL,
+
+    `longitude` DECIMAL(10,7) NOT NULL,
+
+    `accuracy_meters` DECIMAL(8,2) DEFAULT NULL,
+
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    `visible_until` DATETIME NOT NULL,
+
+    `deleted_at` DATETIME DEFAULT NULL,
+
+    PRIMARY KEY (`id`),
+
+    KEY `idx_map_moment_session_visible`
+        (`session_id`, `visible_until`),
+
+    KEY `idx_map_moment_session_created`
+        (`session_id`, `created_at`),
+
+    KEY `idx_map_moment_conversation`
+        (`conversation_id`, `created_at`),
+
+    KEY `idx_map_moment_user`
+        (`user_id`, `created_at`),
+
+    CONSTRAINT `fk_map_moment_session`
+        FOREIGN KEY (`session_id`)
+        REFERENCES `map_share_sessions` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_map_moment_conversation`
+        FOREIGN KEY (`conversation_id`)
+        REFERENCES `conversations` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_map_moment_user`
+        FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `chk_map_moment_latitude`
+        CHECK (
+            `latitude` >= -90
+            AND `latitude` <= 90
+        ),
+
+    CONSTRAINT `chk_map_moment_longitude`
+        CHECK (
+            `longitude` >= -180
+            AND `longitude` <= 180
+        ),
+
+    CONSTRAINT `chk_map_moment_accuracy`
+        CHECK (
+            `accuracy_meters` IS NULL
+            OR `accuracy_meters` >= 0
+        )
+
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 5. MAP MOMENT MEDIA
+-- ============================================================
+-- Liên kết moment với storage_assets.
+--
+-- Hiện tại 1 moment có thể chỉ upload 1 ảnh,
+-- nhưng thiết kế này hỗ trợ nhiều ảnh/moment về sau.
+--
+-- sort_order dùng để swipe kiểu story.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `map_moment_media` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    `moment_id` BIGINT UNSIGNED NOT NULL,
+
+    `storage_asset_id` BIGINT UNSIGNED NOT NULL,
+
+    `sort_order` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+
+    UNIQUE KEY `uniq_map_moment_asset`
+        (`moment_id`, `storage_asset_id`),
+
+    UNIQUE KEY `uniq_map_moment_sort`
+        (`moment_id`, `sort_order`),
+
+    KEY `idx_map_moment_media_asset`
+        (`storage_asset_id`),
+
+    CONSTRAINT `fk_map_moment_media_moment`
+        FOREIGN KEY (`moment_id`)
+        REFERENCES `map_moments` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_map_moment_media_asset`
+        FOREIGN KEY (`storage_asset_id`)
+        REFERENCES `storage_assets` (`id`)
+        ON DELETE RESTRICT
+
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 6. NOTIFICATIONS
+-- ============================================================
+-- Generic notification table để dùng cho toàn chat app.
+--
+-- Suggested type values:
+--
+-- 100 = MAP_SHARE_REQUESTED
+-- 101 = MAP_SHARE_ACCEPTED
+-- 102 = MAP_SHARE_REJECTED
+-- 103 = MAP_SESSION_STARTED
+-- 104 = MAP_SESSION_ENDED
+-- 105 = MAP_SESSION_EXPIRED
+-- 110 = MAP_MOMENT_CREATED
+--
+-- Sau này:
+-- 200+ message notification
+-- 300+ friendship notification
+-- ...
+--
+-- data:
+-- {
+--   "sessionId": 123,
+--   "momentId": 456
+-- }
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `notifications` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    `user_id` BIGINT UNSIGNED NOT NULL,
+
+    `actor_id` BIGINT UNSIGNED DEFAULT NULL,
+
+    `type` SMALLINT UNSIGNED NOT NULL,
+
+    `conversation_id` BIGINT UNSIGNED DEFAULT NULL,
+
+    `data` JSON DEFAULT NULL,
+
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    `read_at` DATETIME DEFAULT NULL,
+
+    `expires_at` DATETIME DEFAULT NULL,
+
+    PRIMARY KEY (`id`),
+
+    KEY `idx_notification_user_read_created`
+        (`user_id`, `read_at`, `created_at`),
+
+    KEY `idx_notification_user_created`
+        (`user_id`, `created_at`),
+
+    KEY `idx_notification_type`
+        (`type`, `created_at`),
+
+    KEY `idx_notification_conversation`
+        (`conversation_id`, `created_at`),
+
+    KEY `idx_notification_expire`
+        (`expires_at`),
+
+    CONSTRAINT `fk_notification_user`
+        FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `fk_notification_actor`
+        FOREIGN KEY (`actor_id`)
+        REFERENCES `users` (`id`)
+        ON DELETE SET NULL,
+
+    CONSTRAINT `fk_notification_conversation`
+        FOREIGN KEY (`conversation_id`)
+        REFERENCES `conversations` (`id`)
+        ON DELETE CASCADE
+
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+
+-- ============================================================
+-- VERIFY
+-- ============================================================
+
+SHOW TABLES LIKE 'map_%';
+SHOW TABLES LIKE 'storage_assets';
+SHOW TABLES LIKE 'notifications';

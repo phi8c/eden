@@ -35,11 +35,15 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="text-sm font-semibold text-[#4f403a]">
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
+          placeholder="ban@example.com"
+          className="h-12 rounded-2xl border-[#f1ddcf] bg-[#fffaf6] px-4"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
@@ -47,11 +51,15 @@ export function LoginForm() {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="password">Mat khau</Label>
+        <Label htmlFor="password" className="text-sm font-semibold text-[#4f403a]">
+          Mat khau
+        </Label>
         <Input
           id="password"
           type="password"
           autoComplete="current-password"
+          placeholder="Nhap mat khau"
+          className="h-12 rounded-2xl border-[#f1ddcf] bg-[#fffaf6] px-4"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -66,7 +74,7 @@ export function LoginForm() {
 
       <Button
         type="submit"
-        className="w-full"
+        className="mt-2 h-12 w-full rounded-2xl bg-[var(--dove-primary)] font-bold text-white shadow-lg shadow-[#d97757]/20 hover:bg-[#c96747]"
         disabled={loginMutation.isPending}
       >
         <LogIn data-icon="inline-start" />
@@ -75,7 +83,10 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         Chua co tai khoan?{" "}
-        <Link className="font-medium text-foreground underline" href="/register">
+        <Link
+          className="font-bold text-[var(--dove-primary)] underline-offset-4 hover:underline"
+          href="/register"
+        >
           Dang ky
         </Link>
       </p>

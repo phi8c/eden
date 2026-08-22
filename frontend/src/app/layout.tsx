@@ -6,8 +6,8 @@ import "./globals.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export const metadata: Metadata = {
-  title: "Dove Chat",
-  description: "Realtime chat app",
+  title: "Eden",
+  description: "Realtime chat and map story app",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

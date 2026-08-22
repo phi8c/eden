@@ -1,4 +1,4 @@
 export enum ConversationType {
-  PRIVATE = 'private',
-  GROUP = 'group',
+  PRIVATE = 0,
+  GROUP = 1,
 }

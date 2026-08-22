@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Check, Loader2, MessageCircle, UserMinus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,12 @@ import { useAppDispatch } from "@/store/hooks";
 import { setActiveConversationId } from "@/store/slices/chatSlice";
 import { useAuthStore } from "@/modules/auth/stores/auth.store";
 import { useChatUiStore } from "@/modules/chat/stores/chat-ui.store";
+import { useConversations } from "@/modules/chat/hooks/useConversations";
+import type { Conversation } from "@/modules/chat/types/chat.types";
 import { useFriends } from "../hooks/useFriends";
 import {
   useAcceptFriendRequest,
   useRejectFriendRequest,
-  useStartPrivateConversation,
   useUnfriend,
 } from "../hooks/useFriendshipMutations";
 import { usePendingRequests } from "../hooks/usePendingRequests";
@@ -22,21 +24,49 @@ function getOtherUserId(friendship: Friendship, currentUserId?: number) {
     return null;
   }
 
-  return friendship.user1_id === currentUserId
+  return Number(friendship.user1_id) === Number(currentUserId)
     ? friendship.user2_id
     : friendship.user1_id;
+}
+
+function findPrivateConversation(
+  conversations: Conversation[],
+  currentUserId: number | undefined,
+  otherUserId: number,
+) {
+  return conversations.find((conversation) => {
+    const isPrivate =
+      conversation.type === "private" ||
+      (conversation.type as unknown as number) === 0;
+
+    if (!isPrivate || !currentUserId) {
+      return false;
+    }
+
+    const memberIds = conversation.members.map((member) =>
+      Number(member.user_id),
+    );
+
+    return memberIds.includes(currentUserId) && memberIds.includes(otherUserId);
+  });
 }
 
 export function FriendsPanel() {
   const dispatch = useAppDispatch();
   const currentUserId = useAuthStore((state) => state.currentUser?.user.id);
   const setMobilePanel = useChatUiStore((state) => state.setMobilePanel);
+  const conversationsQuery = useConversations();
   const friendsQuery = useFriends();
   const pendingQuery = usePendingRequests();
   const acceptRequest = useAcceptFriendRequest();
   const rejectRequest = useRejectFriendRequest();
   const unfriend = useUnfriend();
-  const startConversation = useStartPrivateConversation();
+
+  useEffect(() => {
+    if (friendsQuery.isSuccess) {
+      void conversationsQuery.refetch();
+    }
+  }, [conversationsQuery.refetch, friendsQuery.isSuccess]);
 
   async function handleStartChat(friendship: Friendship) {
     const otherUserId = getOtherUserId(friendship, currentUserId);
@@ -45,7 +75,23 @@ export function FriendsPanel() {
       return;
     }
 
-    const conversation = await startConversation.mutateAsync(otherUserId);
+    const cachedConversation = findPrivateConversation(
+      conversationsQuery.data ?? [],
+      currentUserId,
+      otherUserId,
+    );
+    const conversation =
+      cachedConversation ??
+      findPrivateConversation(
+        (await conversationsQuery.refetch()).data ?? [],
+        currentUserId,
+        otherUserId,
+      );
+
+    if (!conversation) {
+      return;
+    }
+
     dispatch(setActiveConversationId(conversation.id));
     setMobilePanel("chat");
   }
@@ -139,7 +185,7 @@ export function FriendsPanel() {
                   size="icon-sm"
                   aria-label="Start chat"
                   onClick={() => void handleStartChat(friendship)}
-                  disabled={startConversation.isPending}
+                  disabled={conversationsQuery.isFetching}
                 >
                   <MessageCircle />
                 </Button>

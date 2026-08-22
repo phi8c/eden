@@ -23,12 +23,9 @@ import {
 from '@nestjs/event-emitter';
 
 import {
-
- SupabaseStorageService
-
-}
-
-from '../../../infrastructure/storage/services/supabase-storage.service';
+  StoragePurpose,
+  StorageService,
+} from '../../../common/storage';
 
 import {
 
@@ -37,14 +34,6 @@ import {
 }
 
 from '../../../helper/media/image.helper';
-
-import {
-
- PathHelper
-
-}
-
-from '../../../helper/media/path.helper';
 
 import {
 
@@ -69,7 +58,7 @@ extends WorkerHost{
  constructor(
 
    private storage:
-   SupabaseStorageService,
+   StorageService,
 
    private emitter:
    EventEmitter2,
@@ -126,23 +115,38 @@ extends WorkerHost{
    }
 
 
-   const url =
+   const purpose =
+
+   type === 'avatar'
+
+   ? StoragePurpose.AVATAR
+
+   : StoragePurpose.MESSAGE_ATTACHMENT;
+
+
+   const upload =
 
    await
 
-   this.storage.upload(
+   this.storage.uploadFile({
+
+      ownerUserId:
+      userId,
+
+      purpose,
 
       buffer,
 
-      PathHelper.avatar(
+      originalFilename:
+      file.originalname,
 
-        userId
-
-      ),
-
+      mimeType:
       file.mimetype,
 
-   );
+      sizeBytes:
+      file.size,
+
+   });
 
 
    this.emitter.emit(
@@ -153,7 +157,7 @@ extends WorkerHost{
 
           userId,
 
-          url,
+          upload.url,
 
           type,
 

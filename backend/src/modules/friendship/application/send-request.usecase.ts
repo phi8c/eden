@@ -3,6 +3,7 @@ import {
  BadRequestException
 }
 from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { FriendshipRepository }
 from '../repositories/friendship.repository';
@@ -12,6 +13,8 @@ from '../dto/send-friend-request.dto';
 
 import { FriendshipStatus }
 from '../enum/friendship-status.enum';
+import { FriendshipUpdatedEvent }
+from '../events/friendship-updated.event';
 
 @Injectable()
 
@@ -21,6 +24,9 @@ export class SendRequestUseCase{
 
   private readonly friendshipRepo:
   FriendshipRepository,
+
+  private readonly eventEmitter:
+  EventEmitter2,
 
  ){}
 
@@ -61,7 +67,7 @@ export class SendRequestUseCase{
 
    if(!existed){
 
-      return await
+      const friendship = await
       this.friendshipRepo
       .createfriendship({
 
@@ -91,6 +97,18 @@ export class SendRequestUseCase{
 
       });
 
+      this.eventEmitter.emit(
+        'friendship.updated',
+        new FriendshipUpdatedEvent({
+          action: 'request',
+          friendship,
+          actorId: userId,
+          recipientUserIds: [targetId],
+        }),
+      );
+
+      return friendship;
+
    }
 
 
@@ -105,7 +123,7 @@ export class SendRequestUseCase{
    }
 
 
-   return await
+   const friendship = await
    this.friendshipRepo
    .updateStatus(
 
@@ -114,6 +132,20 @@ export class SendRequestUseCase{
       FriendshipStatus.PENDING,
 
    );
+
+   if (friendship) {
+      this.eventEmitter.emit(
+        'friendship.updated',
+        new FriendshipUpdatedEvent({
+          action: 'request',
+          friendship,
+          actorId: userId,
+          recipientUserIds: [targetId],
+        }),
+      );
+   }
+
+   return friendship;
 
  }
 

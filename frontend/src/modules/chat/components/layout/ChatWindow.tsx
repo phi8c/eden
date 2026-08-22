@@ -1,25 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Info, Loader2, MapPinned, MessageCircle, Plus } from "lucide-react";
+import { Loader2, MapPinned, MessageCircle, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuthStore } from "@/modules/auth/stores/auth.store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setActiveTopicId } from "@/store/slices/chatSlice";
 import { ChatMapMode } from "@/modules/chat-map/components/ChatMapMode";
+import { MapShareRequestDialog } from "@/modules/map-story/components";
 import { useConversations } from "../../hooks/useConversations";
 import { useTopics } from "../../hooks/useTopics";
 import { useChatUiStore } from "../../stores/chat-ui.store";
 import { ChatComposer } from "../composer/ChatComposer";
 import { MessageList } from "../message/MessageList";
 import { CreateTopicDialog } from "../topic/CreateTopicDialog";
+import { MobileChatHeader } from "./MobileChatHeader";
+import { getConversationDisplay } from "../../utils/conversation-display";
 
 export function ChatWindow() {
   const [createTopicOpen, setCreateTopicOpen] = useState(false);
+  const [topicPickerOpen, setTopicPickerOpen] = useState(false);
   const chatMode = useChatUiStore((state) => state.chatMode);
   const setChatMode = useChatUiStore((state) => state.setChatMode);
   const setMobilePanel = useChatUiStore((state) => state.setMobilePanel);
+  const currentUserId = useAuthStore((state) => state.currentUser?.user.id);
   const dispatch = useAppDispatch();
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversationId,
@@ -31,18 +37,36 @@ export function ChatWindow() {
   const activeConversation =
     conversations.find((conversation) => conversation.id === activeConversationId) ??
     null;
+  const activeConversationName = activeConversation
+    ? getConversationDisplay(activeConversation, currentUserId).displayName
+    : "Chua chon hoi thoai";
   const activeTopic =
     topics.find((topic) => topic.id === activeTopicId) ?? null;
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-muted/30">
-      <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-background px-3">
+    <section className="relative flex h-full min-h-0 flex-col bg-muted/30">
+      <MobileChatHeader
+        activeConversation={activeConversation}
+        activeTopic={activeTopic}
+        topics={topics}
+        activeTopicId={activeTopicId}
+        chatMode={chatMode}
+        conversationId={activeConversationId}
+        topicPickerOpen={topicPickerOpen}
+        currentUserId={currentUserId}
+        onBack={() => setMobilePanel("conversations")}
+        onTopicPickerOpenChange={setTopicPickerOpen}
+        onTopicSelect={(topicId) => dispatch(setActiveTopicId(topicId))}
+        onToggleChatMode={() =>
+          setChatMode(chatMode === "messages" ? "map" : "messages")
+        }
+        onCreateTopic={() => setCreateTopicOpen(true)}
+      />
+
+      <header className="hidden h-14 shrink-0 items-center justify-between gap-3 border-b bg-background px-3 lg:flex">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">
-            {activeConversation?.title ??
-              (activeConversation
-                ? `Conversation ${activeConversation.id}`
-                : "Chua chon hoi thoai")}
+            {activeConversationName}
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {activeTopicId
@@ -70,20 +94,11 @@ export function ChatWindow() {
             <MapPinned data-icon="inline-start" />
             Map
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Details"
-            className="lg:hidden"
-            onClick={() => setMobilePanel("details")}
-          >
-            <Info />
-          </Button>
+          <MapShareRequestDialog conversationId={activeConversationId} />
         </div>
       </header>
 
-      <div className="flex h-11 shrink-0 items-center gap-2 border-b bg-background px-3">
+      <div className="hidden h-11 shrink-0 items-center gap-2 border-b bg-background px-3 lg:flex">
         {isLoadingTopics && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" />

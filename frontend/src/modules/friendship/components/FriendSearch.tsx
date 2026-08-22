@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Search, UserPlus } from "lucide-react";
+import { Check, Loader2, Search, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useSendFriendRequest } from "../hooks/useFriendshipMutations";
 
 export function FriendSearch() {
   const [query, setQuery] = useState("");
+  const [requestedUserIds, setRequestedUserIds] = useState<number[]>([]);
   const currentUserId = useAuthStore((state) => state.currentUser?.user.id);
   const { data: users = [], isFetching } = useUserSearch(query);
   const sendRequest = useSendFriendRequest();
@@ -44,36 +45,62 @@ export function FriendSearch() {
           )}
 
           {!isFetching &&
-            visibleUsers.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between gap-2 rounded-md px-2 py-2 hover:bg-muted"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {user.username ?? `User ${user.id}`}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
+            visibleUsers.map((user) => {
+              const requested = requestedUserIds.includes(user.id);
+              const sending =
+                sendRequest.isPending &&
+                sendRequest.variables?.targetUserId === user.id;
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    sendRequest.mutate({
-                      targetUserId: user.id,
-                    })
-                  }
-                  disabled={sendRequest.isPending}
+              return (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between gap-2 rounded-md px-2 py-2 hover:bg-muted"
                 >
-                  <UserPlus data-icon="inline-start" />
-                  Add
-                </Button>
-              </div>
-            ))}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {user.username ?? `User ${user.id}`}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant={requested ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() =>
+                      sendRequest.mutate(
+                        {
+                          targetUserId: user.id,
+                        },
+                        {
+                          onSuccess: () =>
+                            setRequestedUserIds((current) =>
+                              current.includes(user.id)
+                                ? current
+                                : [...current, user.id],
+                            ),
+                        },
+                      )
+                    }
+                    disabled={requested || sending}
+                  >
+                    {requested ? (
+                      <Check data-icon="inline-start" />
+                    ) : sending ? (
+                      <Loader2
+                        data-icon="inline-start"
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <UserPlus data-icon="inline-start" />
+                    )}
+                    {requested ? "Da gui" : sending ? "Dang gui" : "Add"}
+                  </Button>
+                </div>
+              );
+            })}
         </div>
       )}
     </section>

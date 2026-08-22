@@ -16,7 +16,13 @@ export class LogoutUseCase{
 
     res.clearCookie(
 
-       'refresh_token'
+       'refresh_token',
+
+       {
+        path: '/',
+        sameSite: 'lax',
+        secure: false,
+       }
 
     );
 

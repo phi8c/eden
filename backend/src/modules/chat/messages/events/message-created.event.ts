@@ -11,7 +11,16 @@ export interface MessageCreatedPayload {
 
   type: number;
 
+  metadata?: unknown;
+
   createdAt: Date;
+
+  attachments?: {
+    id: number;
+    url: string;
+    mimeType: string | null;
+    createdAt: Date | string;
+  }[];
 }
 
 export class MessageCreatedEvent {

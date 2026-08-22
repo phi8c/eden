@@ -34,6 +34,20 @@ export function AuthSessionProvider({
 
         if (storedToken) {
           setAccessToken(storedToken);
+
+          try {
+            const currentUser = await getCurrentUser();
+
+            if (cancelled) {
+              return;
+            }
+
+            setCurrentUser(currentUser);
+            queryClient.setQueryData(["auth", "current-user"], currentUser);
+            return;
+          } catch {
+            setAccessToken(null);
+          }
         }
 
         const token = await refreshAccessToken();

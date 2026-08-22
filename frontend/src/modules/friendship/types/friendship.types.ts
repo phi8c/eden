@@ -24,3 +24,10 @@ export type SearchUser = Pick<User, "id" | "email"> & {
 export interface SendFriendRequestPayload {
   targetUserId: number;
 }
+
+export interface FriendshipRealtimeUpdate {
+  action: "request" | "accepted" | "rejected" | "removed";
+  friendship: Friendship;
+  actorId: number;
+  recipientUserIds: number[];
+}

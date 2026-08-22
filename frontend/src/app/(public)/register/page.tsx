@@ -5,7 +5,7 @@ export default function RegisterPage() {
   return (
     <AuthPanel
       title="Tao tai khoan"
-      description="Dang ky nhanh de bat dau chat va test realtime."
+      description="Dang ky nhanh de bat dau chat, tao topic va test realtime."
     >
       <RegisterForm />
     </AuthPanel>

@@ -84,6 +84,32 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --dove-primary: #d97757;
+  --dove-primary-light: #ebb6a6;
+  --dove-cream: #fdf3e7;
+  --dove-text-dark: #333333;
+  --dove-text-gray: #999999;
+  --dove-avatar-bg: #eae8fe;
+  --dove-avatar-text: #968ddf;
+  --dove-badge-red: #eb3f33;
+  --dove-status-green: #22c55e;
+}
+
+@keyframes dove-marquee-x {
+  0% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-35%);
+  }
+}
+
+.dove-marquee {
+  animation: dove-marquee-x 8s linear infinite alternate;
+  min-width: max-content;
 }
 
 .dark {

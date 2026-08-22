@@ -5,9 +5,12 @@ import {
   CreateDateColumn,
   JoinColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 
 import { Topic } from '../../topics/entities/topic.entity';
+import { MessageAttachment } from './message-attachment.entity';
+import { MessageReaction } from './message-reaction.entity';
 
 @Entity('messages')
 export class Message {
@@ -23,7 +26,7 @@ export class Message {
   @Column()
   sender_id: number;
 
-  @Column({ default: 1 })
+  @Column({ type: 'tinyint', unsigned: true, default: 1 })
   type: number;
 
   @Column({ type: 'text', nullable: true })
@@ -35,13 +38,19 @@ export class Message {
   @CreateDateColumn()
   created_at: Date;
 
-  @Column({ nullable: true })
-  edited_at: Date;
+  @Column({ type: 'datetime', nullable: true })
+  edited_at: Date | null;
 
-  @Column({ nullable: true })
-  deleted_at: Date;
+  @Column({ type: 'datetime', nullable: true })
+  deleted_at: Date | null;
 
   @ManyToOne(() => Topic)
   @JoinColumn({ name: 'topic_id' })
   topic: Topic;
+
+  @OneToMany(() => MessageAttachment, (attachment) => attachment.message)
+  attachments: MessageAttachment[];
+
+  @OneToMany(() => MessageReaction, (reaction) => reaction.message)
+  reactions: MessageReaction[];
 }

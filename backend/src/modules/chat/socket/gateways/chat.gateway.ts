@@ -20,6 +20,9 @@ import {
 
 import { PresenceService } from '../../../presence/services/presence.service';
 import { ConversationService } from '../../conversations/services/conversation.service';
+import { MapStorySocketEvents } from '../../map/map-story/constants';
+import { MapStoryLocationService } from '../../map/map-story/services';
+import type { MapLocationInput } from '../../map/map-story/types';
 
 import { SocketAuthService } from '../services/socket-auth.service';
 
@@ -33,6 +36,9 @@ import type {
 import type {
   MessageCreatedPayload,
 } from '../../messages/events/message-created.event';
+import type {
+  MessageReactionUpdatedPayload,
+} from '../../messages/events/message-reaction-updated.event';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -50,6 +56,8 @@ export class ChatGateway
     private readonly presenceService: PresenceService,
 
     private readonly conversationService: ConversationService,
+
+    private readonly mapStoryLocationService: MapStoryLocationService,
   ) {}
 
   @WebSocketServer()
@@ -138,6 +146,14 @@ export class ChatGateway
       ),
     );
 
+    console.log(
+      '[SOCKET JOIN]',
+      client.id,
+      SocketRoom.conversation(
+        Number(conversationId),
+      ),
+    );
+
     return {
       success: true,
       conversationId: Number(conversationId),
@@ -161,10 +177,98 @@ export class ChatGateway
     );
   }
 
+  @SubscribeMessage(
+    SocketEvents.MAP_LOCATION_UPDATE,
+  )
+  async updateMapLocation(
+    @ConnectedSocket()
+    client: Socket,
+
+    @MessageBody()
+    payload: {
+      sessionId: number;
+      location: MapLocationInput;
+    },
+  ) {
+    const user =
+      client.data.user as SocketUser;
+
+    const result =
+      await this.mapStoryLocationService.updateLocation(
+        user.sub,
+        Number(payload.sessionId),
+        payload.location,
+      );
+
+    this.server
+      .to(
+        SocketRoom.conversation(
+          result.conversationId,
+        ),
+      )
+      .emit(
+        MapStorySocketEvents.LOCATION_UPDATED,
+        result,
+      );
+
+    return {
+      success: true,
+      sessionId: result.sessionId,
+    };
+  }
+
+  @SubscribeMessage(
+    SocketEvents.MESSAGE_TYPING_START,
+  )
+  async startTyping(
+    @ConnectedSocket()
+    client: Socket,
+
+    @MessageBody()
+    payload: {
+      conversationId: number;
+      topicId: number;
+    },
+  ) {
+    await this.emitTyping(
+      client,
+      payload,
+      true,
+    );
+  }
+
+  @SubscribeMessage(
+    SocketEvents.MESSAGE_TYPING_STOP,
+  )
+  async stopTyping(
+    @ConnectedSocket()
+    client: Socket,
+
+    @MessageBody()
+    payload: {
+      conversationId: number;
+      topicId: number;
+    },
+  ) {
+    await this.emitTyping(
+      client,
+      payload,
+      false,
+    );
+  }
+
   public emitMessage(
     conversationId: number,
     payload: MessageCreatedPayload,
   ): void {
+    console.log(
+      '[SOCKET EMIT message:new]',
+      SocketRoom.conversation(
+        conversationId,
+      ),
+      payload.id,
+    );
+
     this.server
       .to(
         SocketRoom.conversation(
@@ -174,6 +278,102 @@ export class ChatGateway
       .emit(
         SocketEvents.MESSAGE_NEW,
         payload,
+      );
+  }
+
+  public emitMessageReaction(
+    conversationId: number,
+    payload: MessageReactionUpdatedPayload,
+  ): void {
+    this.server
+      .to(
+        SocketRoom.conversation(
+          conversationId,
+        ),
+      )
+      .emit(
+        SocketEvents.MESSAGE_REACTION_UPDATED,
+        payload,
+      );
+  }
+
+  public emitToConversation(
+    conversationId: number,
+    event: string,
+    payload: unknown,
+  ): void {
+    this.server
+      .to(
+        SocketRoom.conversation(
+          conversationId,
+        ),
+      )
+      .emit(
+        event,
+        payload,
+      );
+  }
+
+  public emitToUser(
+    userId: number,
+    event: string,
+    payload: unknown,
+  ): void {
+    this.server
+      .to(
+        SocketRoom.user(
+          userId,
+        ),
+      )
+      .emit(
+        event,
+        payload,
+      );
+  }
+
+  private async emitTyping(
+    client: Socket,
+    payload: {
+      conversationId: number;
+      topicId: number;
+    },
+    typing: boolean,
+  ) {
+    const user =
+      client.data.user as SocketUser;
+
+    const conversationId =
+      Number(payload.conversationId);
+    const topicId =
+      Number(payload.topicId);
+
+    const canJoin =
+      await this.conversationService.canJoinConversation(
+        conversationId,
+        user.sub,
+      );
+
+    if (!canJoin) {
+      throw new ForbiddenException(
+        'Access denied.',
+      );
+    }
+
+    client
+      .to(
+        SocketRoom.conversation(
+          conversationId,
+        ),
+      )
+      .emit(
+        SocketEvents.MESSAGE_TYPING_UPDATE,
+        {
+          conversationId,
+          topicId,
+          userId: user.sub,
+          typing,
+          updatedAt: new Date().toISOString(),
+        },
       );
   }
 }

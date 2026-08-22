@@ -4,6 +4,7 @@ import {
 
 }
 from '@nestjs/common';
+import { StorageAssetsModule } from '../../common/storage';
 
 import {
 
@@ -55,6 +56,12 @@ from './processors/media.processor';
 
 
 @Module({
+
+ imports:[
+
+   StorageAssetsModule,
+
+ ],
 
  controllers:[
 

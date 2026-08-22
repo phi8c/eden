@@ -24,13 +24,12 @@ export class FriendshipRepository {
   }
 
   async updateStatus(id: number, status: number) {
-    return this.friendshipRepository.update(id, {
+    await this.friendshipRepository.update(id, {
       status,
       updated_at: new Date(),
     });
 
-    {
-    }
+    return this.findById(id);
   }
   async findFriends(userId: number) {
     return this.friendshipRepository
@@ -41,9 +40,12 @@ export class FriendshipRepository {
   }
 
   async findPendingRequests(userId: number) {
-    return this.friendshipRepository.find({
-      where: { user2_id: userId, status: 0 },
-    });
+    return this.friendshipRepository
+      .createQueryBuilder('f')
+      .where('(f.user1_id = :userId OR f.user2_id = :userId)', { userId })
+      .andWhere('f.requester_id != :userId', { userId })
+      .andWhere('f.status = :status', { status: 0 })
+      .getMany();
   }
   async findById(id: number) {
   return this.friendshipRepository.findOne({

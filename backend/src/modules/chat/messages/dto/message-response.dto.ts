@@ -7,6 +7,23 @@ export interface MessageResponseDto {
   senderId: number;
   content: string;
   type: number;
+  metadata: unknown;
+  createdAt: Date | string;
+  attachments: MessageAttachmentResponseDto[];
+  reactions: MessageReactionResponseDto[];
+}
+
+export interface MessageAttachmentResponseDto {
+  id: number;
+  url: string;
+  mimeType: string | null;
+  createdAt: Date | string;
+}
+
+export interface MessageReactionResponseDto {
+  id: number;
+  userId: number;
+  reaction: string | null;
   createdAt: Date | string;
 }
 
@@ -39,7 +56,22 @@ export function toMessageResponseDto(
     ),
     content: message.content ?? '',
     type: Number(message.type),
+    metadata: message.metadata ?? null,
     createdAt,
+    attachments:
+      message.attachments?.map((attachment) => ({
+        id: Number(attachment.id),
+        url: attachment.file_url,
+        mimeType: attachment.file_type,
+        createdAt: attachment.created_at,
+      })) ?? [],
+    reactions:
+      message.reactions?.map((reaction) => ({
+        id: Number(reaction.id),
+        userId: Number(reaction.user_id),
+        reaction: reaction.reaction,
+        createdAt: reaction.created_at,
+      })) ?? [],
   };
 }
 

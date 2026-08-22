@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Conversation } from './entities/conversation.entity';
 import { ConversationMember } from './entities/conversation-member.entity';
+import { UserProfile } from '../../user/entities/user-profile.entity';
 
 import { ConversationController } from './controllers/conversation.controller';
 import { ConversationService } from './services/conversation.service';
@@ -25,6 +26,7 @@ from './applications/get-conversations.usecase';
   TypeOrmModule.forFeature([
     Conversation, 
     ConversationMember,
+    UserProfile,
   ]),
   forwardRef(() => TopicModule),
 ],

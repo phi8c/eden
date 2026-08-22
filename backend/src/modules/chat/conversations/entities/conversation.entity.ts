@@ -20,13 +20,13 @@ export class Conversation {
   id: number;
 
   @Column({
-    type: 'enum',
-    enum: ConversationType,
+    type: 'tinyint',
+    unsigned: true,
   })
   type: ConversationType;
 
-  @Column({ nullable: true })
-  title: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  title: string | null;
 
   @Column({ type: 'bigint', unsigned: true, nullable: true })
   created_by: number;

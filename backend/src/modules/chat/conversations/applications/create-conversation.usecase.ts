@@ -129,14 +129,14 @@ export class CreateConversationUseCase{
 
    await this.redis.del(
 
-      `conversations:${userId}`
+      `conversations:v2:${userId}`
 
    );
 
 
    await this.redis.del(
 
-      `conversations:${otherUserId}`
+      `conversations:v2:${otherUserId}`
 
    );
 

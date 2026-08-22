@@ -9,6 +9,8 @@ from '../application/send-message.usecase';
 
 import { GetMessagesUseCase }
 from '../application/get-messages.usecase';
+import { ToggleMessageReactionUseCase }
+from '../application/toggle-message-reaction.usecase';
 
 @Injectable()
 export class MessageService {
@@ -20,6 +22,9 @@ export class MessageService {
     private readonly getMessagesUseCase:
     GetMessagesUseCase,
 
+    private readonly toggleReactionUseCase:
+    ToggleMessageReactionUseCase,
+
   ) {}
 
   async sendMessage(
@@ -27,6 +32,8 @@ export class MessageService {
     dto: SendMessageDto,
 
     userId:number,
+
+    files: Express.Multer.File[] = [],
 
   ){
 
@@ -37,6 +44,8 @@ export class MessageService {
         dto,
 
         userId,
+
+        files,
 
     );
 
@@ -61,6 +70,18 @@ export class MessageService {
 
       );
 
+  }
+
+  async toggleReaction(
+    messageId: number,
+    userId: number,
+    reaction: string,
+  ){
+      return this.toggleReactionUseCase.execute(
+          messageId,
+          userId,
+          reaction,
+      );
   }
 
 }

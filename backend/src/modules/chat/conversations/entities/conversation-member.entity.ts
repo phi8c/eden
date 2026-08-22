@@ -10,8 +10,8 @@ import { User } from '../../../user/entities/user.entity';
 import { Conversation } from './conversation.entity';
 
 export enum ConversationMemberRole {
-  MEMBER = 'member',
-  ADMIN = 'admin',
+  MEMBER = 0,
+  ADMIN = 1,
 }
 
 @Entity('conversation_members')
@@ -36,8 +36,8 @@ export class ConversationMember {
   user_id: number;
 
   @Column({
-    type: 'enum',
-    enum: ConversationMemberRole,
+    type: 'tinyint',
+    unsigned: true,
     default: ConversationMemberRole.MEMBER,
   })
   role: ConversationMemberRole;

@@ -62,6 +62,8 @@ export class RefreshTokenUseCase{
           email:
           payload.email,
 
+      }, {
+         expiresIn: '15m',
       });
 
 

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Loader2, MapPinned } from "lucide-react";
+import { MapStoryPanel } from "@/modules/map-story/components";
 
 const MapView = dynamic(
   () => import("@/modules/map/components/MapView").then((mod) => mod.MapView),
@@ -32,5 +33,14 @@ export function ChatMapMode({ conversationId }: ChatMapModeProps) {
     );
   }
 
-  return <MapView conversationId={conversationId} />;
+  return (
+    <div className="flex h-full min-h-[500px] flex-col">
+      <div className="hidden lg:block">
+        <MapStoryPanel conversationId={conversationId} />
+      </div>
+      <div className="min-h-0 flex-1">
+        <MapView conversationId={conversationId} />
+      </div>
+    </div>
+  );
 }

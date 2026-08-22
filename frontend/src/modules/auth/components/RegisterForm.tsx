@@ -45,10 +45,14 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="username">Ten hien thi</Label>
+        <Label htmlFor="username" className="text-sm font-semibold text-[#4f403a]">
+          Ten hien thi
+        </Label>
         <Input
           id="username"
           autoComplete="username"
+          placeholder="Eden friend"
+          className="h-12 rounded-2xl border-[#f1ddcf] bg-[#fffaf6] px-4"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           maxLength={50}
@@ -57,11 +61,15 @@ export function RegisterForm() {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="text-sm font-semibold text-[#4f403a]">
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
+          placeholder="ban@example.com"
+          className="h-12 rounded-2xl border-[#f1ddcf] bg-[#fffaf6] px-4"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
@@ -69,11 +77,15 @@ export function RegisterForm() {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="password">Mat khau</Label>
+        <Label htmlFor="password" className="text-sm font-semibold text-[#4f403a]">
+          Mat khau
+        </Label>
         <Input
           id="password"
           type="password"
           autoComplete="new-password"
+          placeholder="Toi thieu 6 ky tu"
+          className="h-12 rounded-2xl border-[#f1ddcf] bg-[#fffaf6] px-4"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           minLength={6}
@@ -88,14 +100,21 @@ export function RegisterForm() {
         </p>
       )}
 
-      <Button type="submit" className="w-full" disabled={isPending}>
+      <Button
+        type="submit"
+        className="mt-2 h-12 w-full rounded-2xl bg-[var(--dove-primary)] font-bold text-white shadow-lg shadow-[#d97757]/20 hover:bg-[#c96747]"
+        disabled={isPending}
+      >
         <UserPlus data-icon="inline-start" />
         Tao tai khoan
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         Da co tai khoan?{" "}
-        <Link className="font-medium text-foreground underline" href="/login">
+        <Link
+          className="font-bold text-[var(--dove-primary)] underline-offset-4 hover:underline"
+          href="/login"
+        >
           Dang nhap
         </Link>
       </p>

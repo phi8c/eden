@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { useConversationSocket } from "@/modules/realtime/hooks/useConversationSocket";
 import { useSocketConnection } from "@/modules/realtime/hooks/useSocketConnection";
+import { useFriendshipRealtime } from "@/modules/friendship/hooks/useFriendshipRealtime";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatWindow } from "./ChatWindow";
 import { MobileChatLayout } from "./MobileChatLayout";
@@ -22,6 +23,7 @@ export function ChatShell() {
 
   useSocketConnection();
   useConversationSocket(activeConversationId);
+  useFriendshipRealtime();
 
   return (
     <>
@@ -31,7 +33,7 @@ export function ChatShell() {
             "--left-width": leftCollapsed ? "76px" : "320px",
           } as CSSProperties
         }
-        className="hidden h-dvh min-h-0 grid-cols-[var(--left-width)_minmax(0,1fr)_320px] overflow-hidden bg-background transition-[grid-template-columns] lg:grid"
+        className="hidden h-dvh min-h-0 grid-cols-[var(--left-width)_minmax(0,1fr)_320px] overflow-hidden bg-[var(--dove-cream)] transition-[grid-template-columns] lg:grid"
       >
         <ChatSidebar
           collapsed={leftCollapsed}

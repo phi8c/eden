@@ -13,9 +13,13 @@ import { UnfriendUseCase } from './application/unfriend.usecase';
 import { GetFriendsUseCase } from './application/get-friends.usecase';
 
 import { GetPendingUseCase } from './application/get-pending.usecase';
+import { ConversationModule } from '../chat/conversations/conversation.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Friendship])],
+  imports: [
+    TypeOrmModule.forFeature([Friendship]),
+    ConversationModule,
+  ],
   controllers: [FriendshipController],
   providers: [FriendshipService, FriendshipRepository, SendRequestUseCase,
 AcceptFriendUseCase,

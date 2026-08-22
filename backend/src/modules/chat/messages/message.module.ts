@@ -3,7 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 
 import { Message } from './entities/message.entity';
+import { MessageAttachment } from './entities/message-attachment.entity';
 import { MessageDelivery } from './entities/message-delivery.entity';
+import { MessageReaction } from './entities/message-reaction.entity';
 
 import { MessageController }
 from './controllers/message.controller';
@@ -19,12 +21,18 @@ from './listeners/message-conversation.listener';
 
 import { MessageRepository }
 from './repositories/message.repository';
+import { MessageAttachmentRepository }
+from './repositories/message-attachment.repository';
+import { MessageReactionRepository }
+from './repositories/message-reaction.repository';
 
 import { ConversationModule }
 from '../conversations/conversation.module';
 
 import { TopicModule }
 from '../topics/topic.module';
+import { StorageAssetsModule }
+from '../../../common/storage';
 
 
 /* USECASE */
@@ -34,6 +42,8 @@ from './application/send-message.usecase';
 
 import { GetMessagesUseCase }
 from './application/get-messages.usecase';
+import { ToggleMessageReactionUseCase }
+from './application/toggle-message-reaction.usecase';
 
 
 import {QueueConfig} from '../../../infrastructure/queue/bull.module'
@@ -48,13 +58,19 @@ import {QueueConfig} from '../../../infrastructure/queue/bull.module'
 
       Message,
 
+      MessageAttachment,
+
       MessageDelivery,
+
+      MessageReaction,
 
    ]),
 
    ConversationModule,
 
    TopicModule,
+
+   StorageAssetsModule,
 
    QueueConfig,
 
@@ -87,9 +103,15 @@ import {QueueConfig} from '../../../infrastructure/queue/bull.module'
 
     MessageRepository,
 
+    MessageAttachmentRepository,
+
+    MessageReactionRepository,
+
     SendMessageUseCase,
 
     GetMessagesUseCase,
+
+    ToggleMessageReactionUseCase,
 
  ],
 

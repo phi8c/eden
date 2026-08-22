@@ -69,7 +69,7 @@ export class FriendshipService{
    id:number,
  ){
    return this.rejectFriendUseCase
-   .execute(id);
+   .execute(userId,id);
  }
 
  unfriend(

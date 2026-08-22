@@ -3,13 +3,35 @@
 import { ShieldCheck } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
+import { useAuthStore } from "@/modules/auth/stores/auth.store";
+import { useAppSelector } from "@/store/hooks";
 import { useSocketStore } from "@/modules/realtime/stores/socket.store";
 import { FriendsPanel } from "@/modules/friendship/components/FriendsPanel";
+import { useConversations } from "../../hooks/useConversations";
+import { getConversationDisplay } from "../../utils/conversation-display";
 
 export function RightSidebar() {
+  const currentUserId = useAuthStore((state) => state.currentUser?.user.id);
+  const activeConversationId = useAppSelector(
+    (state) => state.chat.activeConversationId,
+  );
+  const { data: conversations = [] } = useConversations();
   const status = useSocketStore((state) => state.status);
   const socketId = useSocketStore((state) => state.socketId);
+  const joinedConversationId = useSocketStore(
+    (state) => state.joinedConversationId,
+  );
   const lastError = useSocketStore((state) => state.lastError);
+  const activeConversation =
+    conversations.find((conversation) => conversation.id === activeConversationId) ??
+    null;
+  const conversationDisplay = activeConversation
+    ? getConversationDisplay(activeConversation, currentUserId)
+    : null;
+  const otherMember = conversationDisplay?.otherMember ?? null;
+  const displayName = conversationDisplay?.displayName ?? "Chua chon hoi thoai";
+  const email = otherMember?.user?.email ?? "Thong tin doi phuong se hien o day";
+  const fallback = conversationDisplay?.initials ?? "?";
 
   return (
     <aside className="flex h-full min-h-0 flex-col border-l bg-background">
@@ -24,13 +46,15 @@ export function RightSidebar() {
         <section className="rounded-lg border p-4">
           <div className="flex items-center gap-3">
             <Avatar size="lg">
-              <AvatarFallback>MA</AvatarFallback>
-              <AvatarBadge className="bg-emerald-500 ring-background" />
+              <AvatarFallback>{fallback || "?"}</AvatarFallback>
+              {otherMember ? (
+                <AvatarBadge className="bg-emerald-500 ring-background" />
+              ) : null}
             </Avatar>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">Minh Anh</p>
+              <p className="truncate text-sm font-medium">{displayName}</p>
               <p className="truncate text-xs text-muted-foreground">
-                minhanh@example.com
+                {email}
               </p>
             </div>
           </div>
@@ -44,8 +68,10 @@ export function RightSidebar() {
             <div>
               <p className="text-sm font-medium">Realtime {status}</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                {socketId
-                  ? `Socket ${socketId}`
+                {joinedConversationId
+                  ? `Joined conversation #${joinedConversationId}`
+                  : socketId
+                    ? `Socket ${socketId}`
                   : lastError ?? "Dang cho ket noi socket."}
               </p>
             </div>

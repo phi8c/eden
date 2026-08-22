@@ -1544,3 +1544,27 @@ Toàn bộ frontend có thể hình dung:
 **Đây là baseline mình đề xuất giữ lâu dài cho PICO FE.**
 
 Và quan trọng: **chúng ta đã hoàn tất phần foundation/tooling.** Từ đây không nên tiếp tục “setup cho đẹp” nữa; bắt đầu code product thật. Bước hợp lý nhất là dựng **Admin Shell** trước, vì Sidebar/Topbar/Layout/Navigation sẽ trở thành nền cho toàn bộ Admin và giúp mình chốt luôn design language của platform.
+
+
+
+
+
+
+
+D:\dove>dir %USERPROFILE%\.ssh
+ Volume in drive C is Windows
+ Volume Serial Number is 6A6C-627D
+
+ Directory of C:\Users\admin\.ssh
+
+02/12/2026  03:41 PM    <DIR>          .
+08/12/2026  01:06 PM    <DIR>          ..
+08/21/2026  10:02 AM               411 id_ed25519
+08/21/2026  10:02 AM               102 id_ed25519.pub
+02/12/2026  03:41 PM                97 known_hosts
+               3 File(s)            610 bytes
+               2 Dir(s)  10,322,731,008 bytes free
+
+D:\dove>type %USERPROFILE%\.ssh\id_ed25519.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM9aYvBQuUY6XwVC2tGJy15XcurMS1IA4vVJeEdeDRrD github-actions-dove
+

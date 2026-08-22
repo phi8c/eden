@@ -2,7 +2,6 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { createConversation } from "@/modules/chat/api/chat.api";
 import {
   acceptFriendRequest,
   rejectFriendRequest,
@@ -32,6 +31,9 @@ export function useAcceptFriendRequest() {
       void queryClient.invalidateQueries({
         queryKey: ["friendship"],
       });
+      void queryClient.invalidateQueries({
+        queryKey: ["chat", "conversations"],
+      });
     },
   });
 }
@@ -57,23 +59,6 @@ export function useUnfriend() {
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["friendship"],
-      });
-    },
-  });
-}
-
-export function useStartPrivateConversation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (memberId: number) =>
-      createConversation({
-        type: "private",
-        memberIds: [memberId],
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["chat", "conversations"],
       });
     },
   });

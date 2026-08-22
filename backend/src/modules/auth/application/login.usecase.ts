@@ -23,6 +23,7 @@ import {
 }
 from '../exceptions/auth.exception';
 
+const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 
@@ -114,6 +115,10 @@ export class LoginUseCase{
        secure:false,
 
        sameSite:'lax',
+
+       path:'/',
+
+       maxAge: REFRESH_TOKEN_MAX_AGE_MS,
 
       }
 

@@ -3,7 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { sendMessage } from "../api/chat.api";
-import type { Message, SendMessagePayload } from "../types/chat.types";
+import type { SendMessagePayload } from "../types/chat.types";
+import { appendMessageToQueryCache } from "../utils/message-cache";
 
 export function useSendMessage() {
   const queryClient = useQueryClient();
@@ -11,16 +12,7 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: (payload: SendMessagePayload) => sendMessage(payload),
     onSuccess: (message) => {
-      queryClient.setQueryData<Message[]>(
-        ["chat", "messages", message.topicId],
-        (current = []) => {
-          if (current.some((item) => item.id === message.id)) {
-            return current;
-          }
-
-          return [...current, message];
-        },
-      );
+      appendMessageToQueryCache(queryClient, message);
 
       void queryClient.invalidateQueries({
         queryKey: ["chat", "conversations"],

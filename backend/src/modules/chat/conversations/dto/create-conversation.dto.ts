@@ -6,9 +6,21 @@ import {
   ArrayMinSize,
   IsNumber,
 } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 import { ConversationType } from '../enums/conversation-type.enum';
 export class CreateConversationDto {
+  @Transform(({ value }) => {
+    if (value === 'private') {
+      return ConversationType.PRIVATE;
+    }
+
+    if (value === 'group') {
+      return ConversationType.GROUP;
+    }
+
+    return value;
+  })
   @IsEnum(ConversationType)
   type: ConversationType;
 
@@ -18,7 +30,7 @@ export class CreateConversationDto {
 
   @IsArray()
   @ArrayMinSize(1)
-  @IsArray()
+  @Type(() => Number)
   @IsNumber({}, { each: true })
   memberIds: number[];
 }

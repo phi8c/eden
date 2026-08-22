@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <AuthPanel
       title="Dang nhap"
-      description="Tiep tuc vao khong gian chat cua ban."
+      description="Tiep tuc vao khong gian chat Eden cua ban."
     >
       <Suspense>
         <LoginForm />
